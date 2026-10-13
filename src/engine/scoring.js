@@ -6,93 +6,15 @@ function checkAnswer(question, userAnswer) {
 }
 
 function getPercentage(correct, total) {
-  if (total === 0) {
-    return 0;
-  }
-
+  if (total === 0) return 0;
   return Number(((correct / total) * 100).toFixed(2));
 }
 
 function getLevel(percent) {
-  if (percent < 50) {
-    return "weak";
-  } else if (percent < 80) {
-    return "medium";
-  } else {
-    return "strong";
-  }
+  if (percent < 50) return "weak";
+  if (percent < 80) return "medium";
+  return "strong";
 }
-
-function getWeakConcepts(scores) {
-  const weakConcepts = [];
-
-  for (const concept in scores) {
-    const correct = scores[concept].correct;
-    const total = scores[concept].total;
-    const percentage = getPercentage(correct, total);
-    const level = getLevel(percentage);
-
-    if (level === "weak") {
-      weakConcepts.push(concept);
-    }
-  }
-
-  return weakConcepts;
-}
-
-
-const userAnswers = [
-  "CSS style",
-  "A loop",
-  "A CSS style",
-  "Start, run, stop",
-  "Fulfilled",
-  "Always",
-  ".then()",
-  ".catch()",
-  "The fulfillment value",
-  "async",
-  "Waits for a Promise's result before continuing that function",
-  "A Promise",
-  "try...catch",
-  "In the catch block",
-  ".catch()"
-];
-
-function calculateScores(questions, userAnswers) {
-  const scores = {};
-
-  for (let i = 0; i < questions.length; i++) {
-    const question = questions[i];
-    const userAnswer = userAnswers[i];
-    const concept = question.concept;
-
-    if (!scores[concept]) {
-      scores[concept] = { correct: 0, total: 0 };
-    }
-
-    scores[concept].total += 1;
-
-    if (checkAnswer(question, userAnswer)) {
-      scores[concept].correct += 1;
-    }
-  }
-
-  return scores;
-}
-
-const scores = calculateScores(questions, userAnswers);
-
-for (const concept in scores) {
-  const correct = scores[concept].correct;
-  const total = scores[concept].total;
-  const percentage = getPercentage(correct, total);
-  const level = getLevel(percentage);
-
-  console.log(`${concept}: ${percentage}% - ${level}`);
-}
-
-console.log("Weak concepts:", getWeakConcepts(scores));
 
 const prerequisites = {
   "promise-basics": [],
@@ -102,4 +24,135 @@ const prerequisites = {
   "error-handling": ["then-catch"]
 };
 
-console.log("Prerequisites:", prerequisites);
+function calculateScores(questions, userAnswers) {
+  const scores = {};
+
+  for (let i = 0; i < questions.length; i++) {
+    const question = questions[i];
+    const concept = question.concept;
+
+    if (!scores[concept]) {
+      scores[concept] = { correct: 0, total: 0 };
+    }
+
+    scores[concept].total++;
+
+    if (checkAnswer(question, userAnswers[i])) {
+      scores[concept].correct++;
+    }
+  }
+
+  return scores;
+}
+
+function getWeakConcepts(scores) {
+  const weakConcepts = [];
+
+  for (const concept in scores) {
+    const { correct, total } = scores[concept];
+    const percentage = getPercentage(correct, total);
+
+    if (getLevel(percentage) === "weak") {
+      weakConcepts.push(concept);
+    }
+  }
+
+  return weakConcepts;
+}
+
+function generateRoadmap(scores) {
+  const roadmap = [];
+  const addedConcepts = new Set();
+
+  function addConcept(concept) {
+    if (!scores[concept] || addedConcepts.has(concept)) return;
+
+    const { correct, total } = scores[concept];
+    const level = getLevel(getPercentage(correct, total));
+
+    if (level === "strong") return;
+
+    for (const required of prerequisites[concept] || []) {
+      addConcept(required);
+    }
+
+    if (!addedConcepts.has(concept)) {
+      addedConcepts.add(concept);
+      roadmap.push(concept);
+    }
+  }
+
+  // Weak concepts first
+  for (const concept in scores) {
+    const { correct, total } = scores[concept];
+
+    if (getLevel(getPercentage(correct, total)) === "weak") {
+      addConcept(concept);
+    }
+  }
+
+  // Medium concepts next
+  for (const concept in scores) {
+    const { correct, total } = scores[concept];
+
+    if (getLevel(getPercentage(correct, total)) === "medium") {
+      addConcept(concept);
+    }
+  }
+
+  return roadmap;
+}
+
+const students = [
+  {
+    name: "Student 1: Weak in Promise Basics and Promise States",
+    answers: [
+      "CSS style", "A loop", "A CSS style",
+      "Start, run, stop", "Fulfilled", "Always",
+      ".then()", ".catch()", "The fulfillment value",
+      "async",
+      "Waits for a Promise's result before continuing that function",
+      "A Promise", "try...catch", "In the catch block", ".catch()"
+    ]
+  },
+  {
+    name: "Student 2: Weak in Then & Catch",
+    answers: [
+      "A future result", ".then()", ".map()",
+      "Pending, fulfilled, rejected", "Pending", "Never",
+      ".map()", ".push()", "The HTML document",
+      "async",
+      "Waits for a Promise's result before continuing that function",
+      "A Promise", "try...catch", "In the catch block", ".catch()"
+    ]
+  },
+  {
+    name: "Student 3: Strong in Every Concept",
+    answers: [
+      "A future result", ".then()", ".catch()",
+      "Pending, fulfilled, rejected", "Pending", "Never",
+      ".then()", ".catch()", "The fulfillment value",
+      "async",
+      "Waits for a Promise's result before continuing that function",
+      "A Promise", "try...catch", "In the catch block", ".catch()"
+    ]
+  }
+];
+
+for (const student of students) {
+  const scores = calculateScores(questions, student.answers);
+
+  console.log(`\n--- ${student.name} ---`);
+
+  for (const concept in scores) {
+    const { correct, total } = scores[concept];
+    const percentage = getPercentage(correct, total);
+
+    console.log(
+      `${concept}: ${correct}/${total} (${percentage}%) - ${getLevel(percentage)}`
+    );
+  }
+
+  console.log("Weak concepts:", getWeakConcepts(scores));
+  console.log("Personalized roadmap:", generateRoadmap(scores));
+}
