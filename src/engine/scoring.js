@@ -1,6 +1,4 @@
 
-import questions from "./question.js";
-
 function checkAnswer(question, userAnswer) {
   return question.correctAnswer === userAnswer;
 }
@@ -63,15 +61,22 @@ function getWeakConcepts(scores) {
 function generateRoadmap(scores) {
   const roadmap = [];
   const addedConcepts = new Set();
+  const concepts = Object.keys(scores);
 
   function addConcept(concept) {
-    if (!scores[concept] || addedConcepts.has(concept)) return;
+    if (!scores[concept] || addedConcepts.has(concept)) {
+      return;
+    }
 
     const { correct, total } = scores[concept];
-    const level = getLevel(getPercentage(correct, total));
+    const percentage = getPercentage(correct, total);
+    const level = getLevel(percentage);
 
-    if (level === "strong") return;
+    if (level === "strong") {
+      return;
+    }
 
+    // Add prerequisites before the current concept.
     for (const required of prerequisites[concept] || []) {
       addConcept(required);
     }
@@ -83,7 +88,7 @@ function generateRoadmap(scores) {
   }
 
   // Add weak concepts first.
-  for (const concept in scores) {
+  for (const concept of concepts) {
     const { correct, total } = scores[concept];
 
     if (getLevel(getPercentage(correct, total)) === "weak") {
@@ -92,7 +97,7 @@ function generateRoadmap(scores) {
   }
 
   // Add medium concepts next.
-  for (const concept in scores) {
+  for (const concept of concepts) {
     const { correct, total } = scores[concept];
 
     if (getLevel(getPercentage(correct, total)) === "medium") {
@@ -103,7 +108,6 @@ function generateRoadmap(scores) {
   return roadmap;
 }
 
-// Export the functions so React can use them.
 export {
   calculateScores,
   getPercentage,
@@ -111,3 +115,4 @@ export {
   getWeakConcepts,
   generateRoadmap
 };
+
