@@ -82,7 +82,7 @@ function generateRoadmap(scores) {
     }
   }
 
-  // Weak concepts first
+  // Add weak concepts first.
   for (const concept in scores) {
     const { correct, total } = scores[concept];
 
@@ -91,7 +91,7 @@ function generateRoadmap(scores) {
     }
   }
 
-  // Medium concepts next
+  // Add medium concepts next.
   for (const concept in scores) {
     const { correct, total } = scores[concept];
 
@@ -103,56 +103,11 @@ function generateRoadmap(scores) {
   return roadmap;
 }
 
-const students = [
-  {
-    name: "Student 1: Weak in Promise Basics and Promise States",
-    answers: [
-      "CSS style", "A loop", "A CSS style",
-      "Start, run, stop", "Fulfilled", "Always",
-      ".then()", ".catch()", "The fulfillment value",
-      "async",
-      "Waits for a Promise's result before continuing that function",
-      "A Promise", "try...catch", "In the catch block", ".catch()"
-    ]
-  },
-  {
-    name: "Student 2: Weak in Then & Catch",
-    answers: [
-      "A future result", ".then()", ".map()",
-      "Pending, fulfilled, rejected", "Pending", "Never",
-      ".map()", ".push()", "The HTML document",
-      "async",
-      "Waits for a Promise's result before continuing that function",
-      "A Promise", "try...catch", "In the catch block", ".catch()"
-    ]
-  },
-  {
-    name: "Student 3: Strong in Every Concept",
-    answers: [
-      "A future result", ".then()", ".catch()",
-      "Pending, fulfilled, rejected", "Pending", "Never",
-      ".then()", ".catch()", "The fulfillment value",
-      "async",
-      "Waits for a Promise's result before continuing that function",
-      "A Promise", "try...catch", "In the catch block", ".catch()"
-    ]
-  }
-];
-
-for (const student of students) {
-  const scores = calculateScores(questions, student.answers);
-
-  console.log(`\n--- ${student.name} ---`);
-
-  for (const concept in scores) {
-    const { correct, total } = scores[concept];
-    const percentage = getPercentage(correct, total);
-
-    console.log(
-      `${concept}: ${correct}/${total} (${percentage}%) - ${getLevel(percentage)}`
-    );
-  }
-
-  console.log("Weak concepts:", getWeakConcepts(scores));
-  console.log("Personalized roadmap:", generateRoadmap(scores));
-}
+// Export the functions so React can use them.
+export {
+  calculateScores,
+  getPercentage,
+  getLevel,
+  getWeakConcepts,
+  generateRoadmap
+};

@@ -1,6 +1,12 @@
 
 import { useState } from 'react';
 import questions from './engine/question.js';
+import {
+  calculateScores,
+  getPercentage,
+  getLevel,
+  generateRoadmap
+} from './engine/scoring.js';
 
 function Quiz() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -14,6 +20,15 @@ function Quiz() {
     currentQuestion === questions.length - 1 &&
     selectedAnswer !== '';
 
+  // Calculate results for each concept using all quiz questions.
+  const userAnswers = questions.map((q) => {
+    const answer = answers.find((a) => a.questionId === q.id);
+    return answer ? answer.selectedAnswer : undefined;
+  });
+
+  const conceptScores = calculateScores(questions, userAnswers);
+  const roadmap = generateRoadmap(conceptScores);
+
   return (
     <div>
       {quizFinished ? (
@@ -22,56 +37,44 @@ function Quiz() {
           <h3>
             Your Final Score: {score} / {questions.length}
           </h3>
-          <p>You have completed all the questions!</p>
 
           <h3>Concept-wise Results</h3>
 
-          {questions.reduce((results, q) => {
-            if (!results[q.concept]) {
-              results[q.concept] = { total: 0, correct: 0 };
-            }
-
-            results[q.concept].total += 1;
-
-            const answer = answers.find(
-              (a) => a.concept === q.concept && a.questionId === q.id
+          {Object.entries(conceptScores).map(([concept, result]) => {
+            const percentage = getPercentage(
+              result.correct,
+              result.total
             );
+            const level = getLevel(percentage);
 
-            if (answer?.correct) {
-              results[q.concept].correct += 1;
-            }
+            return (
+              <div key={concept}>
+                <p>
+                  <strong>{concept}</strong>: {result.correct}/
+                  {result.total} ({percentage}%)
+                </p>
+                <p>Level: {level}</p>
+              </div>
+            );
+          })}
 
-            return results;
-          }, {}) &&
-            Object.entries(
-              questions.reduce((results, q) => {
-                if (!results[q.concept]) {
-                  results[q.concept] = { total: 0, correct: 0 };
-                }
+          <h3>Your Personalized Learning Roadmap 🗺️</h3>
 
-                results[q.concept].total += 1;
+          {roadmap.length > 0 ? (
+            <ol>
+              {roadmap.map((concept) => (
+                <li key={concept}>
+                  {concept.replaceAll('-', ' ')}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p>
+              Excellent work! You are strong in all assessed concepts.
+            </p>
+          )}
 
-                const answer = answers.find(
-                  (a) => a.questionId === q.id
-                );
-
-                if (answer?.correct) {
-                  results[q.concept].correct += 1;
-                }
-
-                return results;
-              }, {})
-            ).map(([concept, result]) => (
-              <p key={concept}>
-                {concept}: {result.correct}/{result.total} correct
-                {' — '}
-                {result.correct / result.total >= 0.8
-                  ? 'Strong'
-                  : result.correct / result.total >= 0.5
-                    ? 'Medium'
-                    : 'Weak'}
-              </p>
-            ))}
+          <p>Complete your roadmap topics to strengthen your JavaScript skills!</p>
         </div>
       ) : (
         <>
@@ -99,12 +102,13 @@ function Quiz() {
                       {
                         questionId: question.id,
                         concept: question.concept,
+                        selectedAnswer: option,
                         correct: isCorrect
                       }
                     ]);
 
                     if (isCorrect) {
-                      setScore(score + 1);
+                      setScore((previousScore) => previousScore + 1);
                     }
                   }
                 }}
@@ -126,7 +130,7 @@ function Quiz() {
           <button
             onClick={() => {
               if (currentQuestion < questions.length - 1) {
-                setCurrentQuestion(currentQuestion + 1);
+                setCurrentQuestion((previous) => previous + 1);
                 setSelectedAnswer('');
               }
             }}
