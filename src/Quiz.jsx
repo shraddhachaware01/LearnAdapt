@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import questions from './engine/question.js';
 import {
   calculateScores,
@@ -16,7 +16,7 @@ const conceptNames = {
   'error-handling': 'Error Handling'
 };
 
-function Quiz() {
+function Quiz({ onQuizComplete }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState('');
   const [score, setScore] = useState(0);
@@ -36,6 +36,31 @@ function Quiz() {
   const conceptScores = calculateScores(questions, userAnswers);
   const roadmap = generateRoadmap(conceptScores);
   const overallPercentage = getPercentage(score, questions.length);
+
+  const strongConcepts = Object.values(conceptScores).filter(
+    (result) =>
+      getLevel(getPercentage(result.correct, result.total)) === 'strong'
+  ).length;
+
+  const weakConcepts = Object.values(conceptScores).filter(
+    (result) =>
+      getLevel(getPercentage(result.correct, result.total)) === 'weak'
+  ).length;
+
+  // Send the completed quiz results to App.jsx.
+  useEffect(() => {
+    if (quizFinished) {
+      onQuizComplete?.({
+        score,
+        totalQuestions: questions.length,
+        overallPercentage,
+        conceptScores,
+        strongConcepts,
+        weakConcepts,
+        roadmap
+      });
+    }
+  }, [quizFinished, onQuizComplete]);
 
   function restartQuiz() {
     setCurrentQuestion(0);
@@ -90,6 +115,7 @@ function Quiz() {
                   const isCorrect = option === question.correctAnswer;
 
                   setSelectedAnswer(option);
+
                   setAnswers((previous) => [
                     ...previous,
                     {
@@ -190,9 +216,7 @@ function Quiz() {
               return (
                 <div key={concept} style={styles.concept}>
                   <div style={styles.row}>
-                    <strong>
-                      {conceptNames[concept] || concept}
-                    </strong>
+                    <strong>{conceptNames[concept] || concept}</strong>
                     <span style={{ ...styles.level, color: levelColor }}>
                       {level.charAt(0).toUpperCase() + level.slice(1)}
                     </span>
@@ -232,9 +256,7 @@ function Quiz() {
                 {roadmap.map((concept, index) => (
                   <li key={concept} style={styles.roadmapItem}>
                     <span style={styles.roadmapNumber}>{index + 1}</span>
-                    <span>
-                      {conceptNames[concept] || concept}
-                    </span>
+                    <span>{conceptNames[concept] || concept}</span>
                   </li>
                 ))}
               </ol>
