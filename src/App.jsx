@@ -1,5 +1,8 @@
 
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
+import Home from './pages/Home.jsx';
 import Quiz from './Quiz.jsx';
 import Dashboard from './Dashboard.jsx';
 
@@ -7,14 +10,21 @@ function App() {
   const [quizResults, setQuizResults] = useState(null);
 
   return (
-    <div>
-      <h1>LearnAdapt AI</h1>
-      <p>Learn Smarter. Learn Your Way.</p>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
 
-      <Dashboard results={quizResults} />
+        <Route
+          path="/quiz"
+          element={<Quiz onQuizComplete={setQuizResults} />}
+        />
 
-      <Quiz onQuizComplete={setQuizResults} />
-    </div>
+        <Route
+          path="/dashboard"
+          element={<Dashboard results={quizResults} />}
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
