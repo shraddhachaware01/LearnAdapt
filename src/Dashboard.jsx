@@ -1,5 +1,6 @@
 
 import learningResources from './engine/resources.js';
+import './Dashboard.css';
 
 const conceptNames = {
   'promise-basics': 'Promise Basics',
@@ -33,43 +34,47 @@ function Dashboard({ results }) {
     },
   ];
 
-  // Show all resources before the quiz.
-  // After the quiz, show only concepts in the personalized roadmap.
   const filteredResources = Object.entries(learningResources).filter(
     ([concept]) => !results || results.roadmap.includes(concept)
   );
 
   return (
-    <main style={styles.container}>
-      <header style={styles.header}>
+    <main className="dashboard-page">
+      <header className="dashboard-header">
         <div>
-          <p style={styles.eyebrow}>LEARNADAPT AI</p>
-          <h1 style={styles.heading}>Student Dashboard</h1>
-          <p style={styles.subtitle}>
+          <p className="dashboard-eyebrow">LEARNADAPT AI</p>
+          <h1>Student Dashboard</h1>
+          <p className="dashboard-subtitle">
             Understand your progress. Improve at your own pace.
           </p>
         </div>
-        <span style={styles.avatar}>🎓</span>
+
+        <span className="dashboard-avatar">🎓</span>
       </header>
 
-      {/* Dashboard statistics */}
-      <section style={styles.cards}>
+      <section className="dashboard-stats">
         {stats.map((stat) => (
-          <article key={stat.title} style={styles.card}>
-            <span style={styles.icon}>{stat.icon}</span>
-            <p style={styles.cardTitle}>{stat.title}</p>
-            <h2 style={styles.value}>{stat.value}</h2>
-            <p style={styles.description}>{stat.description}</p>
+          <article className="dashboard-stat-card" key={stat.title}>
+            <span className="dashboard-stat-icon">{stat.icon}</span>
+            <p className="dashboard-stat-title">{stat.title}</p>
+            <h2 className="dashboard-stat-value">{stat.value}</h2>
+            <p className="dashboard-stat-description">{stat.description}</p>
           </article>
         ))}
       </section>
 
-      {/* Concept-wise progress */}
-      <section style={styles.card}>
-        <h2 style={styles.sectionTitle}>JavaScript Learning Progress</h2>
-        <p style={styles.subtitle}>
+      <section className="dashboard-panel">
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="dashboard-eyebrow">YOUR PERFORMANCE</p>
+            <h2>JavaScript Learning Progress</h2>
+          </div>
+          <span className="dashboard-heading-icon">📈</span>
+        </div>
+
+        <p className="dashboard-subtitle">
           {results
-            ? 'Your actual performance across assessed concepts.'
+            ? 'Your performance across assessed concepts.'
             : 'Your concept-wise progress will appear after the quiz.'}
         </p>
 
@@ -87,62 +92,77 @@ function Dashboard({ results }) {
                   ? 'Developing'
                   : 'Strong';
 
-            const levelColor =
+            const levelClass =
               percentage < 50
-                ? '#c0392b'
+                ? 'weak'
                 : percentage < 80
-                  ? '#9a6700'
-                  : '#16803d';
+                  ? 'medium'
+                  : 'strong';
 
             return (
-              <div key={concept} style={styles.concept}>
-                <div style={styles.progressHeader}>
+              <div className="dashboard-concept" key={concept}>
+                <div className="dashboard-progress-header">
                   <strong>{conceptNames[concept] || concept}</strong>
-                  <span style={{ color: levelColor }}>
+                  <span className={`dashboard-level ${levelClass}`}>
                     {percentage}% · {level}
                   </span>
                 </div>
 
-                <div style={styles.track}>
+                <div
+                  className="dashboard-progress-track"
+                  role="progressbar"
+                  aria-label={`${conceptNames[concept] || concept} progress`}
+                  aria-valuenow={percentage}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
                   <div
-                    style={{
-                      ...styles.fill,
-                      width: `${percentage}%`,
-                      background: levelColor,
-                    }}
+                    className={`dashboard-progress-fill ${levelClass}`}
+                    style={{ width: `${percentage}%` }}
                   />
                 </div>
+
+                <p className="dashboard-concept-detail">
+                  {result.correct} of {result.total} questions correct
+                </p>
               </div>
             );
           })}
       </section>
 
-      {/* Personalized roadmap */}
-      <section style={styles.recommendation}>
-        <span style={styles.recommendationIcon}>🚀</span>
-        <div>
-          <h2 style={styles.sectionTitle}>Your Next Step</h2>
+      <section className="dashboard-roadmap-panel">
+        <div className="dashboard-roadmap-icon">🚀</div>
+
+        <div className="dashboard-roadmap-content">
+          <p className="dashboard-eyebrow">PERSONALIZED FOR YOU</p>
+          <h2>Your Next Step</h2>
 
           {!results ? (
-            <p style={styles.subtitle}>
+            <p className="dashboard-subtitle">
               Complete the JavaScript quiz to receive your personalized
               learning recommendation.
             </p>
           ) : results.roadmap.length > 0 ? (
             <>
-              <p style={styles.subtitle}>
+              <p className="dashboard-subtitle">
                 Focus on these concepts in the recommended order:
               </p>
-              <ol style={styles.roadmap}>
-                {results.roadmap.map((concept) => (
+
+              <ol className="dashboard-roadmap-list">
+                {results.roadmap.map((concept, index) => (
                   <li key={concept}>
-                    {conceptNames[concept] || concept}
+                    <span className="dashboard-roadmap-number">
+                      {index + 1}
+                    </span>
+                    <span>
+                      {conceptNames[concept] || concept}
+                    </span>
                   </li>
                 ))}
               </ol>
             </>
           ) : (
-            <p style={styles.subtitle}>
+            <p className="dashboard-subtitle">
               Excellent work! All assessed concepts are strong. Keep
               practising to maintain your progress.
             </p>
@@ -150,162 +170,60 @@ function Dashboard({ results }) {
         </div>
       </section>
 
-      {/* Roadmap-focused learning resources */}
-      <section style={styles.card}>
-        <h2 style={styles.sectionTitle}>📖 Learning Resources</h2>
-        <p style={styles.subtitle}>
+      <section className="dashboard-panel">
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="dashboard-eyebrow">KEEP LEARNING</p>
+            <h2>📚 Learning Resources</h2>
+          </div>
+        </div>
+
+        <p className="dashboard-subtitle">
           {results
             ? 'Resources selected for your personalized learning roadmap.'
             : 'Complete the quiz to receive resources tailored to your needs.'}
         </p>
 
         {!results ? (
-          <p style={styles.emptyMessage}>
+          <p className="dashboard-empty-message">
             Your learning resources will be personalized after your quiz.
           </p>
         ) : filteredResources.length > 0 ? (
-          filteredResources.map(([concept, resources]) => (
-            <div key={concept} style={styles.concept}>
-              <h3 style={styles.resourceHeading}>
-                {conceptNames[concept] || concept}
-              </h3>
+          <div className="dashboard-resources">
+            {filteredResources.map(([concept, resources]) => (
+              <article className="dashboard-resource-card" key={concept}>
+                <h3>{conceptNames[concept] || concept}</h3>
 
-              {resources.map((resource) => (
-                <p key={resource.url} style={styles.resourceItem}>
+                {resources.map((resource) => (
                   <a
+                    className="dashboard-resource-link"
+                    key={resource.url}
                     href={resource.url}
                     target="_blank"
-                    rel="noreferrer"
-                    style={styles.resourceLink}
+                    rel="noopener noreferrer"
                   >
-                    {resource.title} ↗
+                    <span>{resource.title}</span>
+                    <span aria-hidden="true">↗</span>
+                    <small>{resource.type}</small>
                   </a>
-                  <span style={styles.resourceType}>
-                    {' '}· {resource.type}
-                  </span>
-                </p>
-              ))}
-            </div>
-          ))
+                ))}
+              </article>
+            ))}
+          </div>
         ) : (
-          <p style={styles.emptyMessage}>
-            🎉 All concepts are strong! No additional resources are needed
-            in your current roadmap. You can revisit any concept to keep
+          <p className="dashboard-empty-message">
+            🎉 All concepts are strong! You can revisit any concept to keep
             practising.
           </p>
         )}
       </section>
+
+      <footer className="dashboard-footer">
+        <span>LearnAdapt AI</span>
+        <span>Learn smarter. Grow at your own pace. 💜</span>
+      </footer>
     </main>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: '1000px',
-    margin: '32px auto',
-    padding: '20px',
-    fontFamily: 'Arial, sans-serif',
-    color: '#172033',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '16px',
-    marginBottom: '28px',
-  },
-  eyebrow: {
-    color: '#596bd8',
-    fontSize: '12px',
-    fontWeight: 'bold',
-    letterSpacing: '2px',
-  },
-  heading: { fontSize: '30px', margin: '10px 0' },
-  subtitle: { color: '#667085', lineHeight: 1.6, fontSize: '14px' },
-  avatar: {
-    fontSize: '30px',
-    background: '#edf1ff',
-    padding: '16px',
-    borderRadius: '16px',
-  },
-  cards: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-    gap: '16px',
-    marginBottom: '20px',
-  },
-  card: {
-    background: '#ffffff',
-    border: '1px solid #e4e7ec',
-    borderRadius: '16px',
-    padding: '22px',
-    marginBottom: '20px',
-    boxShadow: '0 4px 18px rgba(16, 24, 40, 0.04)',
-  },
-  icon: { fontSize: '25px' },
-  cardTitle: { color: '#667085', fontSize: '14px' },
-  value: { fontSize: '32px', margin: '8px 0' },
-  description: { color: '#667085', fontSize: '13px', lineHeight: 1.5 },
-  sectionTitle: { fontSize: '20px', marginTop: 0 },
-  concept: { marginTop: '22px' },
-  progressHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    gap: '12px',
-    fontSize: '14px',
-    marginBottom: '9px',
-  },
-  track: {
-    height: '9px',
-    background: '#eaecf0',
-    borderRadius: '20px',
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    background: '#596bd8',
-    borderRadius: '20px',
-  },
-  recommendation: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '16px',
-    padding: '22px',
-    borderRadius: '16px',
-    background: '#f3f6ff',
-    marginTop: '4px',
-    marginBottom: '20px',
-  },
-  recommendationIcon: { fontSize: '26px' },
-  roadmap: {
-    paddingLeft: '22px',
-    lineHeight: 2,
-    fontSize: '14px',
-    fontWeight: '600',
-  },
-  resourceHeading: {
-    fontSize: '16px',
-    marginBottom: '8px',
-  },
-  resourceItem: {
-    lineHeight: 1.6,
-    margin: '8px 0',
-  },
-  resourceLink: {
-    color: '#596bd8',
-    fontWeight: '600',
-    textDecoration: 'none',
-  },
-  resourceType: {
-    color: '#667085',
-    fontSize: '13px',
-  },
-  emptyMessage: {
-    color: '#667085',
-    fontSize: '14px',
-    lineHeight: 1.7,
-    marginTop: '18px',
-  },
-};
 
 export default Dashboard;

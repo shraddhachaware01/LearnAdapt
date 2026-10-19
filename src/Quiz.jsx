@@ -5,15 +5,16 @@ import {
   calculateScores,
   getPercentage,
   getLevel,
-  generateRoadmap
+  generateRoadmap,
 } from './engine/scoring.js';
+import './Quiz.css';
 
 const conceptNames = {
   'promise-basics': 'Promise Basics',
   'promise-states': 'Promise States',
   'then-catch': 'Then & Catch',
   'async-await': 'Async / Await',
-  'error-handling': 'Error Handling'
+  'error-handling': 'Error Handling',
 };
 
 function Quiz({ onQuizComplete }) {
@@ -47,7 +48,6 @@ function Quiz({ onQuizComplete }) {
       getLevel(getPercentage(result.correct, result.total)) === 'weak'
   ).length;
 
-  // Send the completed quiz results to App.jsx.
   useEffect(() => {
     if (quizFinished) {
       onQuizComplete?.({
@@ -57,10 +57,19 @@ function Quiz({ onQuizComplete }) {
         conceptScores,
         strongConcepts,
         weakConcepts,
-        roadmap
+        roadmap,
       });
     }
-  }, [quizFinished, onQuizComplete]);
+  }, [
+    quizFinished,
+    onQuizComplete,
+    score,
+    overallPercentage,
+    strongConcepts,
+    weakConcepts,
+    roadmap,
+    conceptScores,
+  ]);
 
   function restartQuiz() {
     setCurrentQuestion(0);
@@ -69,105 +78,158 @@ function Quiz({ onQuizComplete }) {
     setAnswers([]);
   }
 
-  return (
-    <main style={styles.container}>
-      {!quizFinished ? (
-        <section style={styles.card}>
-          <p style={styles.eyebrow}>LEARNADAPT AI · JAVASCRIPT</p>
-          <h2 style={styles.heading}>Knowledge Check</h2>
-          <p style={styles.muted}>
-            Understand your strengths and discover what to learn next.
-          </p>
+  function handleAnswer(option) {
+    if (selectedAnswer !== '') return;
 
-          <div style={styles.progressTrack}>
+    const isCorrect = option === question.correctAnswer;
+
+    setSelectedAnswer(option);
+
+    setAnswers((previous) => [
+      ...previous,
+      {
+        questionId: question.id,
+        concept: question.concept,
+        selectedAnswer: option,
+        correct: isCorrect,
+      },
+    ]);
+
+    if (isCorrect) {
+      setScore((previous) => previous + 1);
+    }
+  }
+
+  function handleNextQuestion() {
+    if (!selectedAnswer) return;
+
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion((previous) => previous + 1);
+      setSelectedAnswer('');
+    }
+  }
+
+  return (
+    <main className="quiz-page">
+      <header className="quiz-navbar">
+        <a className="quiz-brand" href="/">
+          <span className="quiz-brand-icon">L</span>
+          <span>LearnAdapt <span className="quiz-brand-ai">AI</span></span>
+        </a>
+
+        <nav className="quiz-nav-links">
+          <a href="/">Home</a>
+          <a href="/dashboard">Dashboard</a>
+        </nav>
+      </header>
+
+      {!quizFinished ? (
+        <section className="quiz-card">
+          <div className="quiz-heading-block">
+            <span className="quiz-eyebrow">
+              LEARNADAPT AI · JAVASCRIPT
+            </span>
+
+            <h1>Knowledge Check</h1>
+
+            <p className="quiz-description">
+              Understand your strengths and discover what to learn next.
+            </p>
+          </div>
+
+          <div className="quiz-progress-info">
+            <span>
+              Question {currentQuestion + 1} of {questions.length}
+            </span>
+
+            <span className="quiz-score-badge">
+              Score: {score}
+            </span>
+          </div>
+
+          <div
+            className="quiz-progress-track"
+            role="progressbar"
+            aria-valuenow={currentQuestion + 1}
+            aria-valuemin={1}
+            aria-valuemax={questions.length}
+            aria-label="Quiz progress"
+          >
             <div
+              className="quiz-progress-fill"
               style={{
-                ...styles.progressFill,
-                width: `${((currentQuestion + 1) / questions.length) * 100}%`
+                width: `${((currentQuestion + 1) / questions.length) * 100}%`,
               }}
             />
           </div>
 
-          <div style={styles.row}>
-            <span style={styles.muted}>
-              Question {currentQuestion + 1} of {questions.length}
-            </span>
-            <span style={styles.scoreBadge}>Score: {score}</span>
-          </div>
+          <h2 className="quiz-question">
+            {question.question}
+          </h2>
 
-          <h3 style={styles.question}>{question.question}</h3>
+          <div className="quiz-options">
+            {question.options.map((option, index) => {
+              const isSelected = selectedAnswer === option;
+              const isCorrect = option === question.correctAnswer;
 
-          <div style={styles.options}>
-            {question.options.map((option, index) => (
-              <button
-                key={index}
-                style={{
-                  ...styles.option,
-                  ...(selectedAnswer === option
-                    ? option === question.correctAnswer
-                      ? styles.correctOption
-                      : styles.wrongOption
-                    : {})
-                }}
-                onClick={() => {
-                  if (selectedAnswer !== '') return;
+              let optionClass = 'quiz-option';
 
-                  const isCorrect = option === question.correctAnswer;
+              if (selectedAnswer !== '' && isSelected && isCorrect) {
+                optionClass += ' quiz-option-correct';
+              } else if (
+                selectedAnswer !== '' &&
+                isSelected &&
+                !isCorrect
+              ) {
+                optionClass += ' quiz-option-wrong';
+              }
 
-                  setSelectedAnswer(option);
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  className={optionClass}
+                  onClick={() => handleAnswer(option)}
+                  disabled={selectedAnswer !== ''}
+                >
+                  <span className="quiz-option-letter">
+                    {String.fromCharCode(65 + index)}
+                  </span>
 
-                  setAnswers((previous) => [
-                    ...previous,
-                    {
-                      questionId: question.id,
-                      concept: question.concept,
-                      selectedAnswer: option,
-                      correct: isCorrect
-                    }
-                  ]);
+                  <span className="quiz-option-text">
+                    {option}
+                  </span>
 
-                  if (isCorrect) {
-                    setScore((previous) => previous + 1);
-                  }
-                }}
-                disabled={selectedAnswer !== ''}
-              >
-                <span style={styles.optionLetter}>
-                  {String.fromCharCode(65 + index)}
-                </span>
-                <span>{option}</span>
-              </button>
-            ))}
+                  {selectedAnswer !== '' && isSelected && (
+                    <span className="quiz-option-indicator">
+                      {isCorrect ? '✓' : '×'}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {selectedAnswer !== '' && (
-            <p
-              style={{
-                ...styles.feedback,
-                color:
-                  selectedAnswer === question.correctAnswer
-                    ? '#16803d'
-                    : '#c0392b'
-              }}
+            <div
+              className={`quiz-feedback ${
+                selectedAnswer === question.correctAnswer
+                  ? 'quiz-feedback-correct'
+                  : 'quiz-feedback-wrong'
+              }`}
+              role="status"
             >
               {selectedAnswer === question.correctAnswer
-                ? 'Correct answer! Great job.'
+                ? '✓ Correct answer! Great job.'
                 : 'Not quite. Review this concept as you continue.'}
-            </p>
+            </div>
           )}
 
           <button
-            style={{
-              ...styles.primaryButton,
-              opacity: selectedAnswer === '' ? 0.5 : 1
-            }}
+            type="button"
+            className="quiz-primary-button"
             disabled={selectedAnswer === ''}
-            onClick={() => {
-              if (currentQuestion < questions.length - 1) {
-                setCurrentQuestion((previous) => previous + 1);
-                setSelectedAnswer('');
-              }
-            }}
+            onClick={handleNextQuestion}
           >
             {currentQuestion === questions.length - 1
               ? 'Finish quiz'
@@ -175,27 +237,30 @@ function Quiz({ onQuizComplete }) {
           </button>
         </section>
       ) : (
-        <section style={styles.results}>
-          <div style={styles.hero}>
-            <p style={styles.eyebrow}>YOUR LEARNING REPORT</p>
-            <h2 style={styles.heading}>Quiz completed!</h2>
-            <p style={styles.muted}>
+        <section className="quiz-results">
+          <div className="quiz-results-hero">
+            <span className="quiz-eyebrow">YOUR LEARNING REPORT</span>
+
+            <h1>Quiz completed!</h1>
+
+            <p className="quiz-description">
               Every result helps us personalize your learning journey.
             </p>
 
-            <div style={styles.scoreCircle}>
-              <strong style={styles.bigScore}>{overallPercentage}%</strong>
-              <span style={styles.muted}>Overall score</span>
+            <div className="quiz-score-circle">
+              <strong>{overallPercentage}%</strong>
+              <span>Overall score</span>
             </div>
 
-            <p style={styles.scoreSummary}>
+            <p className="quiz-score-summary">
               You answered {score} out of {questions.length} questions correctly.
             </p>
           </div>
 
-          <div style={styles.card}>
-            <h3 style={styles.sectionHeading}>Concept-wise performance</h3>
-            <p style={styles.muted}>
+          <div className="quiz-result-card">
+            <h2>Concept-wise performance</h2>
+
+            <p className="quiz-description">
               See which JavaScript concepts you understand and which need more practice.
             </p>
 
@@ -204,38 +269,33 @@ function Quiz({ onQuizComplete }) {
                 result.correct,
                 result.total
               );
+
               const level = getLevel(percentage);
 
-              const levelColor =
-                level === 'strong'
-                  ? '#16803d'
-                  : level === 'medium'
-                    ? '#9a6700'
-                    : '#c0392b';
-
               return (
-                <div key={concept} style={styles.concept}>
-                  <div style={styles.row}>
-                    <strong>{conceptNames[concept] || concept}</strong>
-                    <span style={{ ...styles.level, color: levelColor }}>
+                <div className="quiz-concept" key={concept}>
+                  <div className="quiz-concept-header">
+                    <strong>
+                      {conceptNames[concept] || concept}
+                    </strong>
+
+                    <span className={`quiz-level quiz-level-${level}`}>
                       {level.charAt(0).toUpperCase() + level.slice(1)}
                     </span>
                   </div>
 
-                  <div style={styles.row}>
-                    <span style={styles.muted}>
+                  <div className="quiz-concept-details">
+                    <span>
                       {result.correct} of {result.total} correct
                     </span>
-                    <span style={styles.muted}>{percentage}%</span>
+
+                    <span>{percentage}%</span>
                   </div>
 
-                  <div style={styles.progressTrack}>
+                  <div className="quiz-progress-track">
                     <div
-                      style={{
-                        ...styles.progressFill,
-                        width: `${percentage}%`,
-                        background: levelColor
-                      }}
+                      className={`quiz-progress-fill quiz-fill-${level}`}
+                      style={{ width: `${percentage}%` }}
                     />
                   </div>
                 </div>
@@ -243,182 +303,53 @@ function Quiz({ onQuizComplete }) {
             })}
           </div>
 
-          <div style={styles.card}>
-            <h3 style={styles.sectionHeading}>
-              Your personalized roadmap
-            </h3>
-            <p style={styles.muted}>
+          <div className="quiz-result-card">
+            <h2>Your personalized roadmap</h2>
+
+            <p className="quiz-description">
               Start with concepts that need improvement, following their prerequisites.
             </p>
 
             {roadmap.length > 0 ? (
-              <ol style={styles.roadmap}>
+              <ol className="quiz-roadmap">
                 {roadmap.map((concept, index) => (
-                  <li key={concept} style={styles.roadmapItem}>
-                    <span style={styles.roadmapNumber}>{index + 1}</span>
-                    <span>{conceptNames[concept] || concept}</span>
+                  <li key={concept} className="quiz-roadmap-item">
+                    <span className="quiz-roadmap-number">
+                      {index + 1}
+                    </span>
+
+                    <span>
+                      {conceptNames[concept] || concept}
+                    </span>
                   </li>
                 ))}
               </ol>
             ) : (
-              <p style={styles.successMessage}>
+              <p className="quiz-success-message">
                 Excellent work! All assessed concepts are strong.
               </p>
             )}
           </div>
 
-          <button style={styles.primaryButton} onClick={restartQuiz}>
+          <button
+            type="button"
+            className="quiz-primary-button quiz-retake-button"
+            onClick={restartQuiz}
+          >
             Retake quiz ↻
           </button>
+
+          <a className="quiz-dashboard-link" href="/dashboard">
+            Explore your dashboard →
+          </a>
         </section>
       )}
+
+      <footer className="quiz-footer">
+        LearnAdapt AI · Learn Smarter. Learn Your Way.
+      </footer>
     </main>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: '760px',
-    margin: '32px auto',
-    padding: '16px',
-    color: '#172033',
-    fontFamily: 'Arial, sans-serif'
-  },
-  card: {
-    background: '#ffffff',
-    border: '1px solid #e4e7ec',
-    borderRadius: '16px',
-    padding: '24px',
-    marginBottom: '20px',
-    boxShadow: '0 4px 18px rgba(16, 24, 40, 0.04)'
-  },
-  results: { display: 'flex', flexDirection: 'column', gap: '4px' },
-  hero: {
-    textAlign: 'center',
-    background: '#f3f6ff',
-    borderRadius: '18px',
-    padding: '28px 20px',
-    marginBottom: '20px'
-  },
-  eyebrow: {
-    color: '#5365b1',
-    fontSize: '12px',
-    fontWeight: '700',
-    letterSpacing: '1.5px'
-  },
-  heading: { fontSize: '28px', margin: '12px 0' },
-  muted: { color: '#667085', fontSize: '14px', lineHeight: 1.6 },
-  row: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '12px'
-  },
-  scoreBadge: {
-    background: '#edf1ff',
-    color: '#4053a3',
-    borderRadius: '20px',
-    padding: '7px 12px',
-    fontSize: '13px',
-    fontWeight: '700'
-  },
-  progressTrack: {
-    height: '8px',
-    background: '#eaecf0',
-    borderRadius: '20px',
-    overflow: 'hidden',
-    margin: '16px 0'
-  },
-  progressFill: {
-    height: '100%',
-    background: '#596bd8',
-    borderRadius: '20px',
-    transition: 'width 0.2s ease'
-  },
-  question: { fontSize: '21px', lineHeight: 1.5, margin: '28px 0 20px' },
-  options: { display: 'grid', gap: '12px' },
-  option: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    width: '100%',
-    padding: '14px',
-    textAlign: 'left',
-    border: '1px solid #d0d5dd',
-    borderRadius: '10px',
-    background: '#ffffff',
-    color: '#172033',
-    cursor: 'pointer',
-    fontSize: '15px'
-  },
-  optionLetter: {
-    display: 'grid',
-    placeItems: 'center',
-    minWidth: '28px',
-    height: '28px',
-    borderRadius: '8px',
-    background: '#f2f4f7',
-    fontWeight: '700'
-  },
-  correctOption: { border: '1px solid #16803d', background: '#effaf2' },
-  wrongOption: { border: '1px solid #c0392b', background: '#fff2f0' },
-  feedback: { fontWeight: '700', fontSize: '14px' },
-  primaryButton: {
-    width: '100%',
-    border: 'none',
-    borderRadius: '10px',
-    padding: '14px 18px',
-    background: '#465bd1',
-    color: '#ffffff',
-    fontSize: '15px',
-    fontWeight: '700',
-    cursor: 'pointer',
-    marginTop: '12px'
-  },
-  scoreCircle: {
-    width: '150px',
-    height: '150px',
-    borderRadius: '50%',
-    border: '8px solid #dce3ff',
-    background: '#ffffff',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '6px',
-    margin: '24px auto'
-  },
-  bigScore: { fontSize: '34px', color: '#465bd1' },
-  scoreSummary: { fontWeight: '700', fontSize: '14px' },
-  sectionHeading: { fontSize: '19px', marginTop: 0 },
-  concept: { padding: '16px 0', borderBottom: '1px solid #eaecf0' },
-  level: { fontSize: '13px', fontWeight: '700' },
-  roadmap: { listStyle: 'none', padding: 0, margin: '20px 0' },
-  roadmapItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '14px',
-    padding: '14px 0',
-    borderBottom: '1px solid #eaecf0',
-    fontWeight: '600'
-  },
-  roadmapNumber: {
-    display: 'grid',
-    placeItems: 'center',
-    width: '32px',
-    height: '32px',
-    borderRadius: '50%',
-    background: '#edf1ff',
-    color: '#465bd1',
-    flexShrink: 0
-  },
-  successMessage: {
-    background: '#effaf2',
-    color: '#16803d',
-    padding: '16px',
-    borderRadius: '10px',
-    lineHeight: 1.5
-  }
-};
 
 export default Quiz;
