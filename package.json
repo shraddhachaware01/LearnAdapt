@@ -24,5 +24,18 @@
     "eslint-plugin-react-refresh": "^0.5.6",
     "globals": "^17.12.0",
     "vite": "^8.3.0"
-  }
+  },
+  "description": "LearnAdapt AI is an AI-based adaptive learning platform designed to help students identify their weak concepts and follow a personalized learning path.",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shraddhachaware01/LearnAdapt.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shraddhachaware01/LearnAdapt/issues"
+  },
+  "homepage": "https://github.com/shraddhachaware01/LearnAdapt#readme"
 }
