@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import questions from './engine/question.js';
 import {
   calculateScores,
@@ -8,6 +8,8 @@ import {
   generateRoadmap,
 } from './engine/scoring.js';
 import './Quiz.css';
+
+const API_URL = 'http://localhost:5001/api/quiz-results';
 
 const conceptNames = {
   'promise-basics': 'Promise Basics',
@@ -22,6 +24,10 @@ function Quiz({ onQuizComplete }) {
   const [selectedAnswer, setSelectedAnswer] = useState('');
   const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState([]);
+  const [saveStatus, setSaveStatus] = useState('idle');
+  const [saveError, setSaveError] = useState('');
+
+  const savedResultRef = useRef(false);
 
   const question = questions[currentQuestion];
 
@@ -48,34 +54,98 @@ function Quiz({ onQuizComplete }) {
       getLevel(getPercentage(result.correct, result.total)) === 'weak'
   ).length;
 
-  useEffect(() => {
-    if (quizFinished) {
-      onQuizComplete?.({
-        score,
-        totalQuestions: questions.length,
-        overallPercentage,
-        conceptScores,
-        strongConcepts,
-        weakConcepts,
-        roadmap,
+  const learningLevel =
+    getLevel(overallPercentage).charAt(0).toUpperCase() +
+    getLevel(overallPercentage).slice(1);
+
+  async function saveQuizResult() {
+    if (savedResultRef.current) return;
+
+    setSaveStatus('saving');
+    setSaveError('');
+
+    const result = {
+      score,
+      totalQuestions: questions.length,
+      percentage: overallPercentage,
+
+      conceptScores: Object.fromEntries(
+        Object.entries(conceptScores).map(([concept, data]) => [
+          concept,
+          getPercentage(data.correct, data.total),
+        ])
+      ),
+
+      learningLevel,
+
+      weakConcepts: Object.entries(conceptScores)
+        .filter(
+          ([, data]) =>
+            getLevel(getPercentage(data.correct, data.total)) === 'weak'
+        )
+        .map(([concept]) => concept),
+
+      roadmap,
+    };
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(result),
       });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.error || data.message || 'Could not save quiz result.'
+        );
+      }
+
+      savedResultRef.current = true;
+      setSaveStatus('saved');
+
+      console.log('Quiz result saved successfully:', data.data);
+    } catch (error) {
+      setSaveStatus('error');
+      setSaveError(error.message || 'Could not connect to the backend.');
+
+      console.error('Failed to save quiz result:', error);
     }
-  }, [
-    quizFinished,
-    onQuizComplete,
-    score,
-    overallPercentage,
-    strongConcepts,
-    weakConcepts,
-    roadmap,
-    conceptScores,
-  ]);
+  }
+
+  useEffect(() => {
+    if (!quizFinished) return;
+
+    onQuizComplete?.({
+      score,
+      totalQuestions: questions.length,
+      overallPercentage,
+      conceptScores,
+      strongConcepts,
+      weakConcepts,
+      roadmap,
+    });
+
+    if (!savedResultRef.current) {
+      saveQuizResult();
+    }
+    // Run when the quiz is completed; the ref prevents duplicate saves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizFinished]);
 
   function restartQuiz() {
+    savedResultRef.current = false;
+
     setCurrentQuestion(0);
     setSelectedAnswer('');
     setScore(0);
     setAnswers([]);
+    setSaveStatus('idle');
+    setSaveError('');
   }
 
   function handleAnswer(option) {
@@ -114,7 +184,9 @@ function Quiz({ onQuizComplete }) {
       <header className="quiz-navbar">
         <a className="quiz-brand" href="/">
           <span className="quiz-brand-icon">L</span>
-          <span>LearnAdapt <span className="quiz-brand-ai">AI</span></span>
+          <span>
+            LearnAdapt <span className="quiz-brand-ai">AI</span>
+          </span>
         </a>
 
         <nav className="quiz-nav-links">
@@ -142,9 +214,7 @@ function Quiz({ onQuizComplete }) {
               Question {currentQuestion + 1} of {questions.length}
             </span>
 
-            <span className="quiz-score-badge">
-              Score: {score}
-            </span>
+            <span className="quiz-score-badge">Score: {score}</span>
           </div>
 
           <div
@@ -163,9 +233,7 @@ function Quiz({ onQuizComplete }) {
             />
           </div>
 
-          <h2 className="quiz-question">
-            {question.question}
-          </h2>
+          <h2 className="quiz-question">{question.question}</h2>
 
           <div className="quiz-options">
             {question.options.map((option, index) => {
@@ -196,9 +264,7 @@ function Quiz({ onQuizComplete }) {
                     {String.fromCharCode(65 + index)}
                   </span>
 
-                  <span className="quiz-option-text">
-                    {option}
-                  </span>
+                  <span className="quiz-option-text">{option}</span>
 
                   {selectedAnswer !== '' && isSelected && (
                     <span className="quiz-option-indicator">
@@ -253,15 +319,46 @@ function Quiz({ onQuizComplete }) {
             </div>
 
             <p className="quiz-score-summary">
-              You answered {score} out of {questions.length} questions correctly.
+              You answered {score} out of {questions.length} questions
+              correctly.
             </p>
+
+            <div className="quiz-save-status" role="status" aria-live="polite">
+              {saveStatus === 'saving' && (
+                <p>Saving your quiz result to the database…</p>
+              )}
+
+              {saveStatus === 'saved' && (
+                <p>✓ Your quiz result has been saved successfully!</p>
+              )}
+
+              {saveStatus === 'error' && (
+                <div>
+                  <p>
+                    We couldn't save your result. Your quiz report is still
+                    available here.
+                  </p>
+
+                  <p>{saveError}</p>
+
+                  <button
+                    type="button"
+                    className="quiz-primary-button"
+                    onClick={saveQuizResult}
+                  >
+                    Try saving again
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="quiz-result-card">
             <h2>Concept-wise performance</h2>
 
             <p className="quiz-description">
-              See which JavaScript concepts you understand and which need more practice.
+              See which JavaScript concepts you understand and which need
+              more practice.
             </p>
 
             {Object.entries(conceptScores).map(([concept, result]) => {
@@ -275,9 +372,7 @@ function Quiz({ onQuizComplete }) {
               return (
                 <div className="quiz-concept" key={concept}>
                   <div className="quiz-concept-header">
-                    <strong>
-                      {conceptNames[concept] || concept}
-                    </strong>
+                    <strong>{conceptNames[concept] || concept}</strong>
 
                     <span className={`quiz-level quiz-level-${level}`}>
                       {level.charAt(0).toUpperCase() + level.slice(1)}
@@ -307,20 +402,17 @@ function Quiz({ onQuizComplete }) {
             <h2>Your personalized roadmap</h2>
 
             <p className="quiz-description">
-              Start with concepts that need improvement, following their prerequisites.
+              Start with concepts that need improvement, following their
+              prerequisites.
             </p>
 
             {roadmap.length > 0 ? (
               <ol className="quiz-roadmap">
                 {roadmap.map((concept, index) => (
                   <li key={concept} className="quiz-roadmap-item">
-                    <span className="quiz-roadmap-number">
-                      {index + 1}
-                    </span>
+                    <span className="quiz-roadmap-number">{index + 1}</span>
 
-                    <span>
-                      {conceptNames[concept] || concept}
-                    </span>
+                    <span>{conceptNames[concept] || concept}</span>
                   </li>
                 ))}
               </ol>

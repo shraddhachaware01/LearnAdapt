@@ -30,6 +30,63 @@ function App() {
       });
   }, []);
 
+  useEffect(() => {
+    fetch('http://localhost:5001/api/quiz-results')
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Could not fetch quiz results');
+        }
+
+        return response.json();
+      })
+      .then((data) => {
+        if (data.success && data.data.length > 0) {
+          const latestResult = data.data[0];
+
+          const conceptScores = Object.fromEntries(
+            Object.entries(latestResult.conceptScores || {}).map(
+              ([concept, percentage]) => [
+                concept,
+                {
+                  correct: Math.round(
+                    (percentage / 100) * getConceptQuestionCount(concept)
+                  ),
+                  total: getConceptQuestionCount(concept),
+                },
+              ]
+            )
+          );
+
+          setQuizResults({
+            score: latestResult.score,
+            totalQuestions: latestResult.totalQuestions,
+            overallPercentage: latestResult.percentage,
+            strongConcepts: Object.values(
+              latestResult.conceptScores || {}
+            ).filter((percentage) => percentage >= 80).length,
+            weakConcepts: (latestResult.weakConcepts || []).length,
+            conceptScores,
+            roadmap: latestResult.roadmap || [],
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('Quiz results fetch error:', error);
+      });
+  }, []);
+
+  function getConceptQuestionCount(concept) {
+    const questionCounts = {
+      'promise-basics': 3,
+      'promise-states': 3,
+      'then-catch': 3,
+      'async-await': 3,
+      'error-handling': 3,
+    };
+
+    return questionCounts[concept] || 0;
+  }
+
   return (
     <>
       <p
