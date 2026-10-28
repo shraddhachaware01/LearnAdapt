@@ -5,9 +5,12 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import Quiz from './Quiz.jsx';
 import Dashboard from './Dashboard.jsx';
+import Learn from './pages/Learn.jsx';
+import Practice from './pages/Practice.jsx';
 
 function App() {
   const [quizResults, setQuizResults] = useState(null);
+  const [quizHistory, setQuizHistory] = useState([]);
   const [backendMessage, setBackendMessage] = useState(
     'Checking backend connection...'
   );
@@ -15,15 +18,10 @@ function App() {
   useEffect(() => {
     fetch('http://localhost:5001/api/health')
       .then((response) => {
-        if (!response.ok) {
-          throw new Error('Backend request failed');
-        }
-
+        if (!response.ok) throw new Error('Backend request failed');
         return response.json();
       })
-      .then((data) => {
-        setBackendMessage(data.message);
-      })
+      .then((data) => setBackendMessage(data.message))
       .catch((error) => {
         console.error('Backend connection error:', error);
         setBackendMessage('Could not connect to backend.');
@@ -33,27 +31,37 @@ function App() {
   useEffect(() => {
     fetch('http://localhost:5001/api/quiz-results')
       .then((response) => {
-        if (!response.ok) {
-          throw new Error('Could not fetch quiz results');
-        }
-
+        if (!response.ok) throw new Error('Could not fetch quiz results');
         return response.json();
       })
       .then((data) => {
         if (data.success && data.data.length > 0) {
+          setQuizHistory(data.data);
+
           const latestResult = data.data[0];
+
+          const questionCounts = {
+            'promise-basics': 3,
+            'promise-states': 3,
+            'then-catch': 3,
+            'async-await': 3,
+            'error-handling': 3,
+          };
 
           const conceptScores = Object.fromEntries(
             Object.entries(latestResult.conceptScores || {}).map(
-              ([concept, percentage]) => [
-                concept,
-                {
-                  correct: Math.round(
-                    (percentage / 100) * getConceptQuestionCount(concept)
-                  ),
-                  total: getConceptQuestionCount(concept),
-                },
-              ]
+              ([concept, percentage]) => {
+                const total = questionCounts[concept] || 0;
+
+                return [
+                  concept,
+                  {
+                    correct: Math.round((percentage / 100) * total),
+                    total,
+                    percentage,
+                  },
+                ];
+              }
             )
           );
 
@@ -74,18 +82,6 @@ function App() {
         console.error('Quiz results fetch error:', error);
       });
   }, []);
-
-  function getConceptQuestionCount(concept) {
-    const questionCounts = {
-      'promise-basics': 3,
-      'promise-states': 3,
-      'then-catch': 3,
-      'async-await': 3,
-      'error-handling': 3,
-    };
-
-    return questionCounts[concept] || 0;
-  }
 
   return (
     <>
@@ -111,8 +107,17 @@ function App() {
 
           <Route
             path="/dashboard"
-            element={<Dashboard results={quizResults} />}
+            element={
+              <Dashboard
+                results={quizResults}
+                quizHistory={quizHistory}
+              />
+            }
           />
+
+          <Route path="/learn" element={<Learn />} />
+
+          <Route path="/learn/practice" element={<Practice />} />
         </Routes>
       </BrowserRouter>
     </>

@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from 'react';
 import learningResources from './engine/resources.js';
 import './Dashboard.css';
 
@@ -11,6 +12,53 @@ const conceptNames = {
 };
 
 function Dashboard({ results }) {
+  const [practiceHistory, setPracticeHistory] = useState([]);
+  const [practiceLoading, setPracticeLoading] = useState(true);
+  const [practiceError, setPracticeError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchPracticeHistory() {
+      try {
+        setPracticeLoading(true);
+        setPracticeError('');
+
+        const response = await fetch(
+          'http://localhost:5001/api/practice-results'
+        );
+
+        if (!response.ok) {
+          throw new Error('Could not load practice history.');
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error('Could not load practice history.');
+        }
+
+        if (!cancelled) {
+          setPracticeHistory(data.data || []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPracticeError(error.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setPracticeLoading(false);
+        }
+      }
+    }
+
+    fetchPracticeHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const stats = [
     {
       title: 'Overall Score',
@@ -48,7 +96,6 @@ function Dashboard({ results }) {
             Understand your progress. Improve at your own pace.
           </p>
         </div>
-
         <span className="dashboard-avatar">🎓</span>
       </header>
 
@@ -58,7 +105,9 @@ function Dashboard({ results }) {
             <span className="dashboard-stat-icon">{stat.icon}</span>
             <p className="dashboard-stat-title">{stat.title}</p>
             <h2 className="dashboard-stat-value">{stat.value}</h2>
-            <p className="dashboard-stat-description">{stat.description}</p>
+            <p className="dashboard-stat-description">
+              {stat.description}
+            </p>
           </article>
         ))}
       </section>
@@ -101,80 +150,70 @@ function Dashboard({ results }) {
 
             return (
               <div className="dashboard-concept" key={concept}>
-                <div className="dashboard-progress-header">
+                <div className="dashboard-concept-heading">
                   <strong>{conceptNames[concept] || concept}</strong>
                   <span className={`dashboard-level ${levelClass}`}>
-                    {percentage}% · {level}
+                    {level}
                   </span>
                 </div>
 
-                <div
-                  className="dashboard-progress-track"
-                  role="progressbar"
-                  aria-label={`${conceptNames[concept] || concept} progress`}
-                  aria-valuenow={percentage}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                >
+                <div className="dashboard-progress-track">
                   <div
                     className={`dashboard-progress-fill ${levelClass}`}
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
 
-                <p className="dashboard-concept-detail">
-                  {result.correct} of {result.total} questions correct
+                <p className="dashboard-subtitle">
+                  {result.correct} of {result.total} correct · {percentage}%
                 </p>
               </div>
             );
           })}
       </section>
 
-      <section className="dashboard-roadmap-panel">
-        <div className="dashboard-roadmap-icon">🚀</div>
-
-        <div className="dashboard-roadmap-content">
-          <p className="dashboard-eyebrow">PERSONALIZED FOR YOU</p>
-          <h2>Your Next Step</h2>
-
-          {!results ? (
-            <p className="dashboard-subtitle">
-              Complete the JavaScript quiz to receive your personalized
-              learning recommendation.
-            </p>
-          ) : results.roadmap.length > 0 ? (
-            <>
-              <p className="dashboard-subtitle">
-                Focus on these concepts in the recommended order:
-              </p>
-
-              <ol className="dashboard-roadmap-list">
-                {results.roadmap.map((concept, index) => (
-                  <li key={concept}>
-                    <span className="dashboard-roadmap-number">
-                      {index + 1}
-                    </span>
-                    <span>
-                      {conceptNames[concept] || concept}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </>
-          ) : (
-            <p className="dashboard-subtitle">
-              Excellent work! All assessed concepts are strong. Keep
-              practising to maintain your progress.
-            </p>
-          )}
+      <section className="dashboard-panel">
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="dashboard-eyebrow">YOUR NEXT STEPS</p>
+            <h2>Your Personalized Learning Roadmap</h2>
+          </div>
         </div>
+
+        {!results ? (
+          <p className="dashboard-subtitle">
+            Complete the JavaScript quiz to receive personalized learning
+            recommendations.
+          </p>
+        ) : results.roadmap.length > 0 ? (
+          <>
+            <p className="dashboard-subtitle">
+              Focus on these concepts in the recommended order:
+            </p>
+            <ol className="dashboard-roadmap-list">
+              {results.roadmap.map((concept, index) => (
+                <li key={concept}>
+                  <span className="dashboard-roadmap-number">
+                    {index + 1}
+                  </span>
+                  <span>{conceptNames[concept] || concept}</span>
+                </li>
+              ))}
+            </ol>
+          </>
+        ) : (
+          <p className="dashboard-subtitle">
+            Excellent work! All assessed concepts are strong. Keep practising
+            to maintain your progress.
+          </p>
+        )}
       </section>
 
       <section className="dashboard-panel">
         <div className="dashboard-section-heading">
           <div>
             <p className="dashboard-eyebrow">KEEP LEARNING</p>
-            <h2>📚 Learning Resources</h2>
+            <h2>📚 Recommended Learning Resources</h2>
           </div>
         </div>
 
@@ -203,7 +242,7 @@ function Dashboard({ results }) {
                     rel="noopener noreferrer"
                   >
                     <span>{resource.title}</span>
-                    <span aria-hidden="true">↗</span>
+                    <span aria-hidden="true"> ↗</span>
                     <small>{resource.type}</small>
                   </a>
                 ))}
@@ -215,6 +254,66 @@ function Dashboard({ results }) {
             🎉 All concepts are strong! You can revisit any concept to keep
             practising.
           </p>
+        )}
+      </section>
+
+      {/* Practice History */}
+      <section className="dashboard-panel">
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="dashboard-eyebrow">YOUR ACTIVITY</p>
+            <h2>📊 Practice History</h2>
+          </div>
+        </div>
+
+        <p className="dashboard-subtitle">
+          Review your previous practice attempts and track your progress.
+        </p>
+
+        {practiceLoading ? (
+          <p className="dashboard-empty-message">
+            Loading your practice history...
+          </p>
+        ) : practiceError ? (
+          <p className="dashboard-empty-message">{practiceError}</p>
+        ) : practiceHistory.length === 0 ? (
+          <p className="dashboard-empty-message">
+            No practice attempts yet. Complete a practice quiz to see your
+            results here.
+          </p>
+        ) : (
+          <div className="dashboard-resources">
+            {practiceHistory.map((attempt) => (
+              <article
+                className="dashboard-resource-card"
+                key={attempt._id}
+              >
+                <h3>
+                  {conceptNames[attempt.concept] || attempt.concept}
+                </h3>
+
+                <p className="dashboard-subtitle">
+                  Score: {attempt.score} / {attempt.totalQuestions}
+                </p>
+
+                <div className="dashboard-progress-track">
+                  <div
+                    className="dashboard-progress-fill"
+                    style={{ width: `${attempt.percentage}%` }}
+                  />
+                </div>
+
+                <p className="dashboard-subtitle">
+                  Result: {attempt.percentage}%
+                </p>
+
+                <small>
+                  Attempted:{' '}
+                  {new Date(attempt.createdAt).toLocaleString()}
+                </small>
+              </article>
+            ))}
+          </div>
         )}
       </section>
 

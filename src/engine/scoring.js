@@ -9,17 +9,17 @@ function getPercentage(correct, total) {
 }
 
 function getLevel(percent) {
-  if (percent < 50) return "weak";
-  if (percent < 80) return "medium";
-  return "strong";
+  if (percent < 50) return 'weak';
+  if (percent < 80) return 'medium';
+  return 'strong';
 }
 
 const prerequisites = {
-  "promise-basics": [],
-  "promise-states": ["promise-basics"],
-  "then-catch": ["promise-states"],
-  "async-await": ["then-catch"],
-  "error-handling": ["then-catch"]
+  'promise-basics': [],
+  'promise-states': ['promise-basics'],
+  'then-catch': ['promise-states'],
+  'async-await': ['then-catch'],
+  'error-handling': ['then-catch'],
 };
 
 function calculateScores(questions, userAnswers) {
@@ -50,7 +50,7 @@ function getWeakConcepts(scores) {
     const { correct, total } = scores[concept];
     const percentage = getPercentage(correct, total);
 
-    if (getLevel(percentage) === "weak") {
+    if (getLevel(percentage) === 'weak') {
       weakConcepts.push(concept);
     }
   }
@@ -61,46 +61,77 @@ function getWeakConcepts(scores) {
 function generateRoadmap(scores) {
   const roadmap = [];
   const addedConcepts = new Set();
+  const visiting = new Set();
+
+  // Preserve the assessment's concept order.
   const concepts = Object.keys(scores);
 
   function addConcept(concept) {
-    if (!scores[concept] || addedConcepts.has(concept)) {
-      return;
-    }
+    if (addedConcepts.has(concept)) return;
 
-    const { correct, total } = scores[concept];
-    const percentage = getPercentage(correct, total);
-    const level = getLevel(percentage);
+    // Prevent infinite recursion if prerequisites ever form a cycle.
+    if (visiting.has(concept)) return;
 
-    if (level === "strong") {
-      return;
-    }
+    visiting.add(concept);
 
-    // Add prerequisites before the current concept.
+    // Prerequisites must be considered before their dependent concept.
     for (const required of prerequisites[concept] || []) {
-      addConcept(required);
+      const prerequisiteScore = scores[required];
+
+      if (!prerequisiteScore) {
+        // The prerequisite has not been assessed yet.
+        addConcept(required);
+      } else {
+        const prerequisiteLevel = getLevel(
+          getPercentage(
+            prerequisiteScore.correct,
+            prerequisiteScore.total
+          )
+        );
+
+        // Include a prerequisite if it still needs practice.
+        if (prerequisiteLevel !== 'strong') {
+          addConcept(required);
+        }
+      }
     }
 
-    if (!addedConcepts.has(concept)) {
+    visiting.delete(concept);
+
+    const score = scores[concept];
+
+    // A prerequisite without a score can still be recommended.
+    if (!score) {
       addedConcepts.add(concept);
       roadmap.push(concept);
+      return;
     }
+
+    const level = getLevel(
+      getPercentage(score.correct, score.total)
+    );
+
+    // Strong concepts don't need practice unless required above.
+    if (level === 'strong') return;
+
+    addedConcepts.add(concept);
+    roadmap.push(concept);
   }
 
-  // Add weak concepts first.
+  // Weak concepts get priority.
   for (const concept of concepts) {
     const { correct, total } = scores[concept];
 
-    if (getLevel(getPercentage(correct, total)) === "weak") {
+    if (getLevel(getPercentage(correct, total)) === 'weak') {
       addConcept(concept);
     }
   }
 
-  // Add medium concepts next.
+  // Medium concepts follow weak concepts.
   for (const concept of concepts) {
     const { correct, total } = scores[concept];
 
-    if (getLevel(getPercentage(correct, total)) === "medium") {
+    if (getLevel(getPercentage(correct, total)) === 'medium') {
       addConcept(concept);
     }
   }
@@ -113,6 +144,5 @@ export {
   getPercentage,
   getLevel,
   getWeakConcepts,
-  generateRoadmap
+  generateRoadmap,
 };
-

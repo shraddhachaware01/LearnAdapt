@@ -4,7 +4,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+
 const QuizResult = require('./models/QuizResult');
+const PracticeResult = require('./models/PracticeResult');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -34,7 +36,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Save a quiz result
+// Save a diagnostic quiz result
 app.post('/api/quiz-results', async (req, res) => {
   try {
     const quizResult = new QuizResult(req.body);
@@ -54,7 +56,7 @@ app.post('/api/quiz-results', async (req, res) => {
   }
 });
 
-// Retrieve all quiz results
+// Retrieve all diagnostic quiz results
 app.get('/api/quiz-results', async (req, res) => {
   try {
     const results = await QuizResult.find().sort({ createdAt: -1 });
@@ -73,9 +75,121 @@ app.get('/api/quiz-results', async (req, res) => {
   }
 });
 
+// Allowed practice concepts
+const validPracticeConcepts = [
+  'promise-basics',
+  'promise-states',
+  'then-catch',
+  'async-await',
+  'error-handling',
+];
+
+// Save a practice result
+app.post('/api/practice-results', async (req, res) => {
+  try {
+    const {
+      concept,
+      score,
+      totalQuestions,
+      percentage,
+      answers,
+    } = req.body;
+
+    // Validate submitted data
+    if (
+      !validPracticeConcepts.includes(concept) ||
+      !Number.isInteger(score) ||
+      !Number.isInteger(totalQuestions) ||
+      totalQuestions < 1 ||
+      score < 0 ||
+      score > totalQuestions ||
+      !Array.isArray(answers) ||
+      answers.length !== totalQuestions ||
+      !answers.every(
+        (answer) =>
+          Number.isInteger(answer.questionIndex) &&
+          Number.isInteger(answer.selectedAnswer) &&
+          typeof answer.correct === 'boolean'
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid practice result data.',
+      });
+    }
+
+    // Verify score and percentage
+    const actualScore = answers.filter(
+      (answer) => answer.correct
+    ).length;
+
+    const calculatedPercentage = Math.round(
+      (score / totalQuestions) * 100
+    );
+
+    if (
+      actualScore !== score ||
+      percentage !== calculatedPercentage
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Score or percentage does not match the answers.',
+      });
+    }
+
+    // Save to MongoDB
+    const savedResult = await new PracticeResult({
+      concept,
+      score,
+      totalQuestions,
+      percentage: calculatedPercentage,
+      answers,
+    }).save();
+
+    return res.status(201).json({
+      success: true,
+      message: 'Practice result saved successfully!',
+      data: savedResult,
+    });
+  } catch (error) {
+    console.error('Save practice result error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Could not save practice result.',
+    });
+  }
+});
+
+// Retrieve all practice results
+app.get('/api/practice-results', async (req, res) => {
+  try {
+    const results = await PracticeResult.find().sort({
+      createdAt: -1,
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: results.length,
+      data: results,
+    });
+  } catch (error) {
+    console.error('Retrieve practice results error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Could not retrieve practice results.',
+    });
+  }
+});
+
 // Start server after connecting to MongoDB
 async function startServer() {
   try {
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI is missing from the .env file.');
+    }
+
     await mongoose.connect(process.env.MONGODB_URI);
 
     console.log('MongoDB Atlas connected successfully! 💜');
@@ -86,7 +200,7 @@ async function startServer() {
       );
     });
   } catch (error) {
-    console.error('MongoDB connection failed:', error.message);
+    console.error('Backend startup failed:', error.message);
     process.exit(1);
   }
 }
