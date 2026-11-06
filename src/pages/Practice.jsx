@@ -2,7 +2,10 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-const API_URL = 'http://localhost:5001/api/practice-results';
+// Supports local development and production deployment
+const API_URL = `${
+  import.meta.env.VITE_API_URL || 'http://localhost:5001'
+}/api/practice-results`;
 
 const practiceQuestions = {
   'promise-basics': [
@@ -22,7 +25,8 @@ const practiceQuestions = {
       question: 'Which method handles a fulfilled Promise value?',
       options: ['catch()', 'then()', 'repeat()', 'query()'],
       answer: 1,
-      explanation: 'then() registers a handler that runs when the Promise fulfills.',
+      explanation:
+        'then() registers a handler that runs when the Promise fulfills.',
     },
     {
       question: 'What does resolve("Done") do inside a Promise executor?',
@@ -48,7 +52,8 @@ const practiceQuestions = {
         'True, false, and null',
       ],
       answer: 1,
-      explanation: 'A Promise starts pending and eventually becomes fulfilled or rejected.',
+      explanation:
+        'A Promise starts pending and eventually becomes fulfilled or rejected.',
     },
     {
       question: 'What does a fulfilled Promise indicate?',
@@ -59,7 +64,8 @@ const practiceQuestions = {
         'The application has stopped',
       ],
       answer: 0,
-      explanation: 'Fulfilled means the Promise completed successfully with a fulfillment value.',
+      explanation:
+        'Fulfilled means the Promise completed successfully with a fulfillment value.',
     },
     {
       question: 'Can a settled Promise change from fulfilled to rejected?',
@@ -70,7 +76,8 @@ const practiceQuestions = {
         'No, its settled state does not change',
       ],
       answer: 3,
-      explanation: 'Once fulfilled or rejected, a Promise cannot change its own state.',
+      explanation:
+        'Once fulfilled or rejected, a Promise cannot change its own state.',
     },
   ],
 
@@ -79,7 +86,8 @@ const practiceQuestions = {
       question: 'Which method is commonly used to handle a Promise rejection?',
       options: ['map()', 'catch()', 'start()', 'repeat()'],
       answer: 1,
-      explanation: 'catch() registers a rejection handler for a Promise chain.',
+      explanation:
+        'catch() registers a rejection handler for a Promise chain.',
     },
     {
       question: 'What happens when a then() callback returns 20?',
@@ -98,14 +106,20 @@ const practiceQuestions = {
       code: 'Promise.resolve(5).then(value => value * 2).then(console.log);',
       options: ['5', '10', 'undefined', 'An error'],
       answer: 1,
-      explanation: 'The first callback doubles 5 to 10, and the next callback logs 10.',
+      explanation:
+        'The first callback doubles 5 to 10, and the next callback logs 10.',
     },
   ],
 
   'async-await': [
     {
       question: 'What does an async function return?',
-      options: ['Always a Promise', 'Only a string', 'Only undefined', 'A DOM element'],
+      options: [
+        'Always a Promise',
+        'Only a string',
+        'Only undefined',
+        'A DOM element',
+      ],
       answer: 0,
       explanation:
         'An async function always returns a Promise. A returned value becomes its fulfillment value.',
@@ -131,7 +145,8 @@ const practiceQuestions = {
         'Only when the Promise fulfills',
       ],
       answer: 1,
-      explanation: 'await suspends the surrounding async function, not the entire JavaScript thread.',
+      explanation:
+        'await suspends the surrounding async function, not the entire JavaScript thread.',
     },
   ],
 
@@ -152,7 +167,8 @@ const practiceQuestions = {
         'Converts the result into HTML',
       ],
       answer: 0,
-      explanation: 'catch() handles a rejection from an earlier part of the Promise chain.',
+      explanation:
+        'catch() handles a rejection from an earlier part of the Promise chain.',
     },
     {
       question: 'What is a useful practice when handling an error?',
@@ -216,7 +232,9 @@ function Practice() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Could not save your result.');
+        throw new Error(
+          result.message || 'Could not save your result.'
+        );
       }
 
       setSaveStatus('saved');
@@ -250,7 +268,9 @@ function Practice() {
 
     if (currentIndex === questions.length - 1) {
       const finalAnswers = [
-        ...answers.filter((answer) => answer.questionIndex !== currentIndex),
+        ...answers.filter(
+          (answer) => answer.questionIndex !== currentIndex
+        ),
         {
           questionIndex: currentIndex,
           selectedAnswer,
@@ -277,6 +297,7 @@ function Practice() {
   }
 
   const score = answers.filter((answer) => answer.correct).length;
+
   const percentage = questions.length
     ? Math.round((score / questions.length) * 100)
     : 0;
@@ -364,11 +385,14 @@ function Practice() {
                   {index + 1}. {item.question}
                 </strong>
 
-                {item.code && <pre style={styles.code}>{item.code}</pre>}
+                {item.code && (
+                  <pre style={styles.code}>{item.code}</pre>
+                )}
 
                 <p style={styles.reviewText}>
                   Your answer:{' '}
-                  {item.options[answer?.selectedAnswer ?? -1] || 'Not answered'}
+                  {item.options[answer?.selectedAnswer ?? -1] ||
+                    'Not answered'}
                 </p>
 
                 <p style={styles.correctAnswer}>
@@ -421,7 +445,9 @@ function Practice() {
 
       <section style={styles.header}>
         <p style={styles.eyebrow}>LEARNADAPT AI · PRACTICE</p>
-        <h1 style={styles.heading}>{conceptNames[concept] || concept}</h1>
+        <h1 style={styles.heading}>
+          {conceptNames[concept] || concept}
+        </h1>
         <p style={styles.headerText}>
           Question {currentIndex + 1} of {questions.length}
         </p>
@@ -439,7 +465,9 @@ function Practice() {
       <section style={styles.card}>
         <h2 style={styles.cardHeading}>{question.question}</h2>
 
-        {question.code && <pre style={styles.code}>{question.code}</pre>}
+        {question.code && (
+          <pre style={styles.code}>{question.code}</pre>
+        )}
 
         <div style={styles.options}>
           {question.options.map((option, index) => {
@@ -471,7 +499,8 @@ function Practice() {
                   background,
                   border,
                   color,
-                  cursor: selectedAnswer !== null ? 'default' : 'pointer',
+                  cursor:
+                    selectedAnswer !== null ? 'default' : 'pointer',
                 }}
               >
                 {String.fromCharCode(65 + index)}. {option}
@@ -485,16 +514,22 @@ function Practice() {
             style={{
               ...styles.feedback,
               background:
-                selectedAnswer === question.answer ? '#effaf2' : '#fff5f5',
+                selectedAnswer === question.answer
+                  ? '#effaf2'
+                  : '#fff5f5',
               borderColor:
-                selectedAnswer === question.answer ? '#86d19b' : '#f0aaaa',
+                selectedAnswer === question.answer
+                  ? '#86d19b'
+                  : '#f0aaaa',
             }}
             role="status"
           >
             <strong
               style={{
                 color:
-                  selectedAnswer === question.answer ? '#166534' : '#991b1b',
+                  selectedAnswer === question.answer
+                    ? '#166534'
+                    : '#991b1b',
               }}
             >
               {selectedAnswer === question.answer
@@ -509,7 +544,8 @@ function Practice() {
           style={{
             ...styles.primaryButton,
             opacity: selectedAnswer === null ? 0.55 : 1,
-            cursor: selectedAnswer === null ? 'not-allowed' : 'pointer',
+            cursor:
+              selectedAnswer === null ? 'not-allowed' : 'pointer',
           }}
           disabled={selectedAnswer === null}
           onClick={nextQuestion}

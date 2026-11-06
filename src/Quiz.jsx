@@ -1,15 +1,23 @@
 
 import { useState, useEffect, useRef } from 'react';
+
 import questions from './engine/question.js';
+
 import {
   calculateScores,
   getPercentage,
   getLevel,
   generateRoadmap,
 } from './engine/scoring.js';
+
 import './Quiz.css';
 
-const API_URL = 'http://localhost:5001/api/quiz-results';
+// Backend API URLs
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
+const API_URL = `${API_BASE_URL}/api/quiz-results`;
+const AI_API_URL = `${API_BASE_URL}/api/analyze-performance`;
 
 const conceptNames = {
   'promise-basics': 'Promise Basics',
@@ -27,7 +35,11 @@ function Quiz({ onQuizComplete }) {
   const [saveStatus, setSaveStatus] = useState('idle');
   const [saveError, setSaveError] = useState('');
 
-  const savedResultRef = useRef(false);
+  // Stores the MongoDB document returned after saving
+  const savedResultRef = useRef(null);
+
+  // Prevents duplicate processing
+  const processingRef = useRef(false);
 
   const question = questions[currentQuestion];
 
@@ -42,6 +54,7 @@ function Quiz({ onQuizComplete }) {
 
   const conceptScores = calculateScores(questions, userAnswers);
   const roadmap = generateRoadmap(conceptScores);
+
   const overallPercentage = getPercentage(score, questions.length);
 
   const strongConcepts = Object.values(conceptScores).filter(
@@ -58,8 +71,12 @@ function Quiz({ onQuizComplete }) {
     getLevel(overallPercentage).charAt(0).toUpperCase() +
     getLevel(overallPercentage).slice(1);
 
+  // STEP 1: Save quiz result to MongoDB and return saved document
   async function saveQuizResult() {
-    if (savedResultRef.current) return;
+    // Reuse existing MongoDB document if already saved
+    if (savedResultRef.current) {
+      return savedResultRef.current;
+    }
 
     setSaveStatus('saving');
     setSaveError('');
@@ -99,46 +116,173 @@ function Quiz({ onQuizComplete }) {
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
+      if (!response.ok || !data.success || !data.data?._id) {
         throw new Error(
           data.error || data.message || 'Could not save quiz result.'
         );
       }
 
-      savedResultRef.current = true;
+      // Store the complete MongoDB document including its unique ID
+      savedResultRef.current = data.data;
+
       setSaveStatus('saved');
 
       console.log('Quiz result saved successfully:', data.data);
+
+      return data.data;
     } catch (error) {
       setSaveStatus('error');
       setSaveError(error.message || 'Could not connect to the backend.');
 
       console.error('Failed to save quiz result:', error);
+
+      throw error;
     }
   }
 
+  // STEP 2: Send performance to Python AI
+  // STEP 3: Save Python AI analysis to the same MongoDB document
+  async function processQuizResult() {
+    if (processingRef.current) return;
+
+    processingRef.current = true;
+
+    try {
+      // First save quiz and obtain MongoDB document ID
+      const savedResult = await saveQuizResult();
+
+      const conceptScoresForAI = Object.fromEntries(
+        Object.entries(conceptScores).map(([concept, result]) => [
+          conceptNames[concept],
+          {
+            correct: result.correct,
+            total: result.total,
+          },
+        ])
+      );
+
+      // Request Python AI analysis through Node.js
+      const response = await fetch(AI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          concept_scores: conceptScoresForAI,
+        }),
+      });
+
+      const aiResult = await response.json();
+
+      if (!response.ok || !aiResult.success || !aiResult.data) {
+        throw new Error(
+          aiResult.detail ||
+            aiResult.message ||
+            'AI analysis request failed.'
+        );
+      }
+
+      const aiData = aiResult.data;
+
+      console.log('Python AI analysis successful:', aiData);
+
+      // Save AI analysis against the SAME MongoDB quiz record
+      try {
+        const saveAIResponse = await fetch(
+          `${API_URL}/${savedResult._id}/ai-analysis`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              aiAnalysis: aiData,
+            }),
+          }
+        );
+
+        const saveAIResult = await saveAIResponse.json();
+
+        if (!saveAIResponse.ok || !saveAIResult.success) {
+          throw new Error(
+            saveAIResult.message ||
+              saveAIResult.error ||
+              'Could not save AI analysis.'
+          );
+        }
+
+        console.log(
+          'Python AI analysis saved successfully in MongoDB:',
+          saveAIResult.data
+        );
+      } catch (error) {
+        // AI analysis is still available for the current dashboard session
+        console.error(
+          'AI analysis succeeded, but MongoDB update failed:',
+          error
+        );
+      }
+
+      // Convert Python concept names back to React concept IDs
+      const conceptIdsByName = Object.fromEntries(
+        Object.entries(conceptNames).map(([id, name]) => [name, id])
+      );
+
+      const updatedConceptScores = Object.fromEntries(
+        Object.entries(aiData.concept_analysis).map(([name, result]) => [
+          conceptIdsByName[name],
+          {
+            correct: result.correct,
+            total: result.total,
+          },
+        ]).filter(([concept]) => Boolean(concept))
+      );
+
+      const updatedRoadmap = aiData.roadmap
+        .map((name) => conceptIdsByName[name])
+        .filter(Boolean);
+
+      // Send Python AI results to Dashboard
+      onQuizComplete?.({
+        score,
+        totalQuestions: questions.length,
+        overallPercentage,
+        conceptScores: updatedConceptScores,
+        strongConcepts: aiData.strong_concepts.length,
+        weakConcepts: aiData.weak_concepts.length,
+        roadmap: updatedRoadmap,
+      });
+
+    } catch (error) {
+      console.error('Quiz processing or AI analysis failed:', error);
+
+      // Fallback: keep normal quiz results if AI is unavailable
+      onQuizComplete?.({
+        score,
+        totalQuestions: questions.length,
+        overallPercentage,
+        conceptScores,
+        strongConcepts,
+        weakConcepts,
+        roadmap,
+      });
+    } finally {
+      processingRef.current = false;
+    }
+  }
+
+  // Automatically process quiz after the final answer
   useEffect(() => {
     if (!quizFinished) return;
 
-    onQuizComplete?.({
-      score,
-      totalQuestions: questions.length,
-      overallPercentage,
-      conceptScores,
-      strongConcepts,
-      weakConcepts,
-      roadmap,
-    });
+    processQuizResult();
 
-    if (!savedResultRef.current) {
-      saveQuizResult();
-    }
-    // Run when the quiz is completed; the ref prevents duplicate saves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quizFinished]);
 
   function restartQuiz() {
-    savedResultRef.current = false;
+    savedResultRef.current = null;
+    processingRef.current = false;
 
     setCurrentQuestion(0);
     setSelectedAnswer('');
@@ -323,7 +467,11 @@ function Quiz({ onQuizComplete }) {
               correctly.
             </p>
 
-            <div className="quiz-save-status" role="status" aria-live="polite">
+            <div
+              className="quiz-save-status"
+              role="status"
+              aria-live="polite"
+            >
               {saveStatus === 'saving' && (
                 <p>Saving your quiz result to the database…</p>
               )}
@@ -344,7 +492,7 @@ function Quiz({ onQuizComplete }) {
                   <button
                     type="button"
                     className="quiz-primary-button"
-                    onClick={saveQuizResult}
+                    onClick={processQuizResult}
                   >
                     Try saving again
                   </button>
@@ -409,8 +557,13 @@ function Quiz({ onQuizComplete }) {
             {roadmap.length > 0 ? (
               <ol className="quiz-roadmap">
                 {roadmap.map((concept, index) => (
-                  <li key={concept} className="quiz-roadmap-item">
-                    <span className="quiz-roadmap-number">{index + 1}</span>
+                  <li
+                    key={concept}
+                    className="quiz-roadmap-item"
+                  >
+                    <span className="quiz-roadmap-number">
+                      {index + 1}
+                    </span>
 
                     <span>{conceptNames[concept] || concept}</span>
                   </li>

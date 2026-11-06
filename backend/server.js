@@ -11,10 +11,15 @@ const PracticeResult = require('./models/PracticeResult');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// CORS configuration for local development and deployment
+// CORS configuration
 const allowedOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
-  : ['http://localhost:5173', 'http://localhost:5174'];
+  : [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+      'http://localhost:5176',
+    ];
 
 app.use(
   cors({
@@ -52,7 +57,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Save a diagnostic quiz result
+// Save diagnostic quiz result
 app.post('/api/quiz-results', async (req, res) => {
   try {
     const quizResult = new QuizResult(req.body);
@@ -72,7 +77,7 @@ app.post('/api/quiz-results', async (req, res) => {
   }
 });
 
-// Retrieve all diagnostic quiz results
+// Retrieve diagnostic quiz results
 app.get('/api/quiz-results', async (req, res) => {
   try {
     const results = await QuizResult.find().sort({ createdAt: -1 });
@@ -100,7 +105,7 @@ const validPracticeConcepts = [
   'error-handling',
 ];
 
-// Save a practice result
+// Save practice result
 app.post('/api/practice-results', async (req, res) => {
   try {
     const {
@@ -133,7 +138,6 @@ app.post('/api/practice-results', async (req, res) => {
       });
     }
 
-    // Verify score and percentage
     const actualScore = answers.filter(
       (answer) => answer.correct
     ).length;
@@ -152,7 +156,6 @@ app.post('/api/practice-results', async (req, res) => {
       });
     }
 
-    // Save to MongoDB
     const savedResult = await new PracticeResult({
       concept,
       score,
@@ -176,7 +179,7 @@ app.post('/api/practice-results', async (req, res) => {
   }
 });
 
-// Retrieve all practice results
+// Retrieve practice results
 app.get('/api/practice-results', async (req, res) => {
   try {
     const results = await PracticeResult.find().sort({
@@ -194,6 +197,95 @@ app.get('/api/practice-results', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Could not retrieve practice results.',
+    });
+  }
+});
+
+// Python AI performance analysis endpoint
+app.post('/api/analyze-performance', async (req, res) => {
+  try {
+    const response = await fetch(
+      'http://127.0.0.1:8001/analyze',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(req.body),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        success: false,
+        message: 'Python AI analysis failed.',
+        error: result.detail || result.message,
+      });
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Python AI service error:', error.message);
+
+    return res.status(503).json({
+      success: false,
+      message: 'Python AI service is unavailable.',
+    });
+  }
+});
+
+// NEW: Save Python AI analysis to an existing quiz result
+app.patch('/api/quiz-results/:id/ai-analysis', async (req, res) => {
+  try {
+    const { aiAnalysis } = req.body;
+
+    if (
+      !aiAnalysis ||
+      typeof aiAnalysis !== 'object' ||
+      Array.isArray(aiAnalysis)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid AI analysis data is required.',
+      });
+    }
+
+    const updatedResult = await QuizResult.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          aiAnalysis,
+          weakConcepts: aiAnalysis.weak_concepts || [],
+          roadmap: aiAnalysis.roadmap || [],
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedResult) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz result not found.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'AI analysis saved successfully!',
+      data: updatedResult,
+    });
+  } catch (error) {
+    console.error('AI analysis update error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Could not save AI analysis.',
+      error: error.message,
     });
   }
 });

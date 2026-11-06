@@ -12,6 +12,7 @@ function Home() {
 
         <nav className="home-nav-links">
           <Link to="/dashboard">Dashboard</Link>
+          <Link to="/learn/practice">Practice</Link>
           <Link to="/quiz" className="home-nav-button">
             Start Learning
           </Link>
@@ -43,26 +44,35 @@ function Home() {
           <Link to="/dashboard" className="home-secondary-button">
             Explore Dashboard
           </Link>
+
+          <Link to="/learn/practice" className="home-secondary-button">
+            Start Practice →
+          </Link>
         </div>
 
         <div className="home-features">
-          <div className="home-feature">
+
+          <Link to="/quiz" className="home-feature">
             <span className="home-feature-icon">🎯</span>
             <h3>Find Your Level</h3>
             <p>Discover what you know and where you need help.</p>
-          </div>
+            <span>Take Diagnostic Quiz →</span>
+          </Link>
 
-          <div className="home-feature">
+          <Link to="/dashboard" className="home-feature">
             <span className="home-feature-icon">🗺️</span>
             <h3>Personalized Roadmap</h3>
             <p>Learn concepts in an order that works for you.</p>
-          </div>
+            <span>View Your Roadmap →</span>
+          </Link>
 
-          <div className="home-feature">
+          <Link to="/dashboard" className="home-feature">
             <span className="home-feature-icon">📈</span>
             <h3>Track Your Progress</h3>
             <p>Review your performance as you learn.</p>
-          </div>
+            <span>View Your Progress →</span>
+          </Link>
+
         </div>
       </main>
 

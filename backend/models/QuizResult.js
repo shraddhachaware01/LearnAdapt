@@ -43,6 +43,12 @@ const quizResultSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+
+    // Stores Python AI analysis results
+    aiAnalysis: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
   },
   {
     timestamps: true,
