@@ -11,7 +11,23 @@ const PracticeResult = require('./models/PracticeResult');
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-app.use(cors());
+// CORS configuration for local development and deployment
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
+  : ['http://localhost:5173', 'http://localhost:5174'];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Not allowed by CORS'));
+    },
+  })
+);
+
 app.use(express.json());
 
 // Home route
@@ -95,7 +111,6 @@ app.post('/api/practice-results', async (req, res) => {
       answers,
     } = req.body;
 
-    // Validate submitted data
     if (
       !validPracticeConcepts.includes(concept) ||
       !Number.isInteger(score) ||
@@ -187,17 +202,15 @@ app.get('/api/practice-results', async (req, res) => {
 async function startServer() {
   try {
     if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI is missing from the .env file.');
+      throw new Error('MONGODB_URI is missing.');
     }
 
     await mongoose.connect(process.env.MONGODB_URI);
 
     console.log('MongoDB Atlas connected successfully! 💜');
 
-    app.listen(PORT, () => {
-      console.log(
-        `LearnAdapt AI server running on http://localhost:${PORT}`
-      );
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`LearnAdapt AI server running on port ${PORT}`);
     });
   } catch (error) {
     console.error('Backend startup failed:', error.message);
