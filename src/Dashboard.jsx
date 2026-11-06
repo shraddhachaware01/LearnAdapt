@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import learningResources from './engine/resources.js';
 import './Dashboard.css';
 
@@ -12,6 +13,8 @@ const conceptNames = {
 };
 
 function Dashboard({ results }) {
+  const navigate = useNavigate();
+
   const [practiceHistory, setPracticeHistory] = useState([]);
   const [practiceLoading, setPracticeLoading] = useState(true);
   const [practiceError, setPracticeError] = useState('');
@@ -86,6 +89,12 @@ function Dashboard({ results }) {
     ([concept]) => !results || results.roadmap.includes(concept)
   );
 
+  const startPractice = (concept) => {
+    navigate(
+      `/learn/practice?concept=${encodeURIComponent(concept)}`
+    );
+  };
+
   return (
     <main className="dashboard-page">
       <header className="dashboard-header">
@@ -99,9 +108,13 @@ function Dashboard({ results }) {
         <span className="dashboard-avatar">🎓</span>
       </header>
 
+      {/* Performance Statistics */}
       <section className="dashboard-stats">
         {stats.map((stat) => (
-          <article className="dashboard-stat-card" key={stat.title}>
+          <article
+            className="dashboard-stat-card"
+            key={stat.title}
+          >
             <span className="dashboard-stat-icon">{stat.icon}</span>
             <p className="dashboard-stat-title">{stat.title}</p>
             <h2 className="dashboard-stat-value">{stat.value}</h2>
@@ -112,6 +125,7 @@ function Dashboard({ results }) {
         ))}
       </section>
 
+      {/* Learning Progress */}
       <section className="dashboard-panel">
         <div className="dashboard-section-heading">
           <div>
@@ -128,50 +142,57 @@ function Dashboard({ results }) {
         </p>
 
         {results &&
-          Object.entries(results.conceptScores).map(([concept, result]) => {
-            const percentage =
-              result.total === 0
-                ? 0
-                : Math.round((result.correct / result.total) * 100);
+          Object.entries(results.conceptScores).map(
+            ([concept, result]) => {
+              const percentage =
+                result.total === 0
+                  ? 0
+                  : Math.round(
+                      (result.correct / result.total) * 100
+                    );
 
-            const level =
-              percentage < 50
-                ? 'Needs practice'
-                : percentage < 80
+              const level =
+                percentage < 50
+                  ? 'Needs practice'
+                  : percentage < 80
                   ? 'Developing'
                   : 'Strong';
 
-            const levelClass =
-              percentage < 50
-                ? 'weak'
-                : percentage < 80
+              const levelClass =
+                percentage < 50
+                  ? 'weak'
+                  : percentage < 80
                   ? 'medium'
                   : 'strong';
 
-            return (
-              <div className="dashboard-concept" key={concept}>
-                <div className="dashboard-concept-heading">
-                  <strong>{conceptNames[concept] || concept}</strong>
-                  <span className={`dashboard-level ${levelClass}`}>
-                    {level}
-                  </span>
-                </div>
+              return (
+                <div className="dashboard-concept" key={concept}>
+                  <div className="dashboard-concept-heading">
+                    <strong>
+                      {conceptNames[concept] || concept}
+                    </strong>
+                    <span className={`dashboard-level ${levelClass}`}>
+                      {level}
+                    </span>
+                  </div>
 
-                <div className="dashboard-progress-track">
-                  <div
-                    className={`dashboard-progress-fill ${levelClass}`}
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
+                  <div className="dashboard-progress-track">
+                    <div
+                      className={`dashboard-progress-fill ${levelClass}`}
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
 
-                <p className="dashboard-subtitle">
-                  {result.correct} of {result.total} correct · {percentage}%
-                </p>
-              </div>
-            );
-          })}
+                  <p className="dashboard-subtitle">
+                    {result.correct} of {result.total} correct · {percentage}%
+                  </p>
+                </div>
+              );
+            }
+          )}
       </section>
 
+      {/* Personalized Learning Roadmap */}
       <section className="dashboard-panel">
         <div className="dashboard-section-heading">
           <div>
@@ -190,6 +211,7 @@ function Dashboard({ results }) {
             <p className="dashboard-subtitle">
               Focus on these concepts in the recommended order:
             </p>
+
             <ol className="dashboard-roadmap-list">
               {results.roadmap.map((concept, index) => (
                 <li key={concept}>
@@ -203,12 +225,13 @@ function Dashboard({ results }) {
           </>
         ) : (
           <p className="dashboard-subtitle">
-            Excellent work! All assessed concepts are strong. Keep practising
-            to maintain your progress.
+            Excellent work! All assessed concepts are strong. Keep
+            practising to maintain your progress.
           </p>
         )}
       </section>
 
+      {/* Recommended Learning Resources */}
       <section className="dashboard-panel">
         <div className="dashboard-section-heading">
           <div>
@@ -230,7 +253,10 @@ function Dashboard({ results }) {
         ) : filteredResources.length > 0 ? (
           <div className="dashboard-resources">
             {filteredResources.map(([concept, resources]) => (
-              <article className="dashboard-resource-card" key={concept}>
+              <article
+                className="dashboard-resource-card"
+                key={concept}
+              >
                 <h3>{conceptNames[concept] || concept}</h3>
 
                 {resources.map((resource) => (
@@ -257,6 +283,40 @@ function Dashboard({ results }) {
         )}
       </section>
 
+      {/* NEW: Direct Practice Quiz Access */}
+      <section className="dashboard-panel">
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="dashboard-eyebrow">TEST YOUR KNOWLEDGE</p>
+            <h2>Practice JavaScript Concepts</h2>
+          </div>
+          <span className="dashboard-heading-icon">✍️</span>
+        </div>
+
+        <p className="dashboard-subtitle">
+          Choose any concept and practice what you have learned.
+        </p>
+
+        <div className="dashboard-resources">
+          {Object.entries(conceptNames).map(([concept, name]) => (
+            <article
+              className="dashboard-resource-card"
+              key={concept}
+            >
+              <h3>{name}</h3>
+
+              <p className="dashboard-subtitle">
+                Test your understanding with practice questions.
+              </p>
+
+              <button onClick={() => startPractice(concept)}>
+                Start Practice →
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
+
       {/* Practice History */}
       <section className="dashboard-panel">
         <div className="dashboard-section-heading">
@@ -275,7 +335,9 @@ function Dashboard({ results }) {
             Loading your practice history...
           </p>
         ) : practiceError ? (
-          <p className="dashboard-empty-message">{practiceError}</p>
+          <p className="dashboard-empty-message">
+            {practiceError}
+          </p>
         ) : practiceHistory.length === 0 ? (
           <p className="dashboard-empty-message">
             No practice attempts yet. Complete a practice quiz to see your
@@ -308,8 +370,7 @@ function Dashboard({ results }) {
                 </p>
 
                 <small>
-                  Attempted:{' '}
-                  {new Date(attempt.createdAt).toLocaleString()}
+                  Attempted: {new Date(attempt.createdAt).toLocaleString()}
                 </small>
               </article>
             ))}
