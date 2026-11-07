@@ -1,0 +1,139 @@
+
+.overview-section {
+  margin-bottom: 28px;
+}
+
+.overview-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.overview-eyebrow {
+  color: #7156dc;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.overview-heading h2 {
+  margin: 7px 0 0;
+  color: #252044;
+  font-size: 23px;
+  letter-spacing: -0.6px;
+}
+
+.overview-heading-tag {
+  padding: 9px 14px;
+  border: 1px solid #e8e3ff;
+  border-radius: 999px;
+  background: #f5f2ff;
+  color: #7156dc;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.overview-card {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #ebe7f5;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 5px 18px rgba(48, 34, 100, 0.035);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.overview-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(79, 70, 229, 0.09);
+}
+
+.overview-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.overview-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  font-size: 23px;
+}
+
+.overview-icon-0 {
+  background: #efedff;
+}
+
+.overview-icon-1 {
+  background: #eafaf1;
+}
+
+.overview-icon-2 {
+  background: #fff2e9;
+}
+
+.overview-icon-3 {
+  background: #eaf3ff;
+}
+
+.overview-card-decoration {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dcd4ff;
+}
+
+.overview-card-label {
+  margin: 0;
+  color: #77748c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.overview-card-value {
+  margin: 10px 0;
+  color: #4935c5;
+  font-size: clamp(27px, 3vw, 36px);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.overview-card-description {
+  margin: 0;
+  color: #9290a7;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 1100px) {
+  .overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 540px) {
+  .overview-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-card {
+    padding: 20px;
+  }
+}

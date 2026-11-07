@@ -1,5 +1,6 @@
-
-require('dotenv').config();
+require('dotenv').config({
+  path: require('path').join(__dirname, '.env'),
+});
 
 const express = require('express');
 const cors = require('cors');
@@ -12,24 +13,32 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // CORS configuration
-const allowedOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
-  : [
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:5175',
-      'http://localhost:5176',
-    ];
+
+// CORS configuration
+const allowedOrigins = new Set([
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+
+  ...(process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((url) => url.trim())
+    .filter(Boolean),
+]);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.has(origin)) {
         return callback(null, true);
       }
 
-      return callback(new Error('Not allowed by CORS'));
+      console.error('Blocked CORS origin:', origin);
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
     },
+    credentials: true,
   })
 );
 

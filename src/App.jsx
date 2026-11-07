@@ -68,6 +68,7 @@ function formatQuizResult(latestResult) {
       strongConcepts: (aiData.strong_concepts || []).length,
       weakConcepts: (aiData.weak_concepts || []).length,
       roadmap,
+      aiAnalysis: aiData,
     };
   }
 
