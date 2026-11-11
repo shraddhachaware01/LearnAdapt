@@ -1,4 +1,6 @@
-
+import VideosPage from './pages/videos/VideosPage.jsx';
+import NoteDetail from './pages/notes/NoteDetail.jsx';
+import NotesPage from './pages/notes/NotesPage.jsx';
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
@@ -218,6 +220,10 @@ function App() {
           <Route path="/learn" element={<Learn />} />
 
           <Route path="/learn/practice" element={<Practice />} />
+          <Route path="/notes" element={<NotesPage />} />
+        
+<Route path="/notes/:topicId" element={<NoteDetail />} />
+<Route path="/videos" element={<VideosPage />} />
         </Routes>
       </BrowserRouter>
     </>

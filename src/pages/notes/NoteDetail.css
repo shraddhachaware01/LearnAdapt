@@ -1,0 +1,401 @@
+
+/* =========================================
+   NOTE DETAIL PAGE
+========================================= */
+
+.note-detail-page {
+  width: 100%;
+  min-height: 100vh;
+  padding: 30px 32px;
+  background: #f8f6fc;
+  color: #35245a;
+  box-sizing: border-box;
+}
+
+/* =========================================
+   BACK BUTTON
+========================================= */
+
+.note-back-button {
+  padding: 10px 16px;
+  background: #ffffff;
+  border: 1px solid #e8def7;
+  border-radius: 9px;
+  color: #7041c5;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.note-back-button:hover {
+  background: #eee7ff;
+  border-color: #cbb8ed;
+}
+
+/* =========================================
+   BREADCRUMB
+========================================= */
+
+.note-breadcrumb {
+  margin: 20px 0;
+  color: #8b819a;
+  font-size: 13px;
+}
+
+/* =========================================
+   TOPIC HEADER
+========================================= */
+
+.note-detail-header {
+  background: #ffffff;
+  border: 1px solid #ebe3f6;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 15px rgba(65, 40, 100, 0.04);
+}
+
+.note-topic-tag {
+  display: inline-block;
+  padding: 7px 12px;
+  background: #f0eaff;
+  color: #7041c5;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.note-detail-header h1 {
+  color: #302052 !important;
+  font-size: 29px;
+  font-weight: 750;
+  margin: 15px 0 10px;
+}
+
+.note-detail-header p {
+  color: #766c85;
+  font-size: 15px;
+  line-height: 1.7;
+  margin-bottom: 15px;
+}
+
+.note-detail-header a {
+  color: #7950c5;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.note-detail-header a:hover {
+  text-decoration: underline;
+}
+
+/* =========================================
+   COMPLETION BUTTON
+========================================= */
+
+.note-completion {
+  margin: 20px 0;
+}
+
+.note-complete-button {
+  padding: 11px 20px;
+  background: #7041c5;
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.note-complete-button:hover {
+  background: #5831a2;
+  transform: translateY(-2px);
+}
+
+/* =========================================
+   TABLE OF CONTENTS
+========================================= */
+
+.note-toc {
+  background: #ffffff;
+  border: 1px solid #e8def7;
+  border-radius: 16px;
+  padding: 22px 24px;
+  margin: 24px 0;
+  box-shadow: 0 4px 15px rgba(65, 40, 100, 0.04);
+}
+
+.note-toc h3 {
+  color: #35245a;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+
+.note-toc-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.note-toc-links a {
+  display: block;
+  padding: 11px 14px;
+  background: #f8f5ff;
+  border: 1px solid #eee7fa;
+  border-radius: 9px;
+  color: #7050a8;
+  font-size: 13px;
+  font-weight: 550;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.note-toc-links a:hover {
+  background: #eee6ff;
+  border-color: #cdb9f1;
+  color: #512b9a;
+  transform: translateX(3px);
+}
+
+/* =========================================
+   ARTICLE CONTENT
+========================================= */
+
+.note-article {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.note-article section {
+  background: #ffffff;
+  border: 1px solid #ebe4f5;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 4px 14px rgba(65, 40, 100, 0.035);
+  scroll-margin-top: 25px;
+}
+
+/* Section headings - IMPORTANT FIX */
+
+.note-article section > h2 {
+  color: #302052 !important;
+  font-size: 21px;
+  font-weight: 750;
+  line-height: 1.4;
+  margin: 0 0 18px;
+}
+
+/* Explanation card headings */
+
+.note-info-card h3 {
+  color: #49316e !important;
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.note-info-card h4 {
+  color: #7041c5 !important;
+  font-size: 13px;
+  font-weight: 700;
+  margin: 18px 0 10px;
+}
+
+/* Paragraphs */
+
+.note-article p,
+.note-info-card p {
+  color: #5e566c !important;
+  font-size: 14px;
+  line-height: 1.8;
+  margin: 0 0 15px;
+}
+
+/* =========================================
+   EXPLANATION CARDS
+========================================= */
+
+.note-info-card {
+  background: #fbf9ff;
+  border: 1px solid #eee7f7;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 18px 0;
+}
+
+/* =========================================
+   CODE BLOCKS
+========================================= */
+
+.note-code {
+  display: block;
+  width: 100%;
+  padding: 18px;
+  margin: 15px 0;
+  background: #f3f0fa;
+  border: 1px solid #e7dff2;
+  border-radius: 10px;
+  color: #38265e;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  box-sizing: border-box;
+}
+
+/* =========================================
+   EXPECTED OUTPUT
+========================================= */
+
+.note-output {
+  padding: 13px 16px;
+  margin: 10px 0 0;
+  background: #eaf8ef;
+  border: 1px solid #d5efdf;
+  border-radius: 9px;
+  color: #217344;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+/* =========================================
+   IMPORTANT POINTS AND MISTAKES
+========================================= */
+
+.note-article ul {
+  padding-left: 22px;
+  margin: 10px 0;
+}
+
+.note-article li {
+  color: #5e566c;
+  font-size: 14px;
+  line-height: 1.8;
+  padding-left: 5px;
+  margin-bottom: 9px;
+}
+
+.note-article li::marker {
+  color: #8056c6;
+}
+
+/* =========================================
+   MDN BUTTON
+========================================= */
+
+.note-mdn-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 18px;
+  margin-top: 12px;
+  background: #7041c5;
+  color: #ffffff !important;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+
+.note-mdn-button:hover {
+  background: #5831a2;
+  transform: translateY(-2px);
+}
+
+/* =========================================
+   PREVIOUS AND NEXT NAVIGATION
+========================================= */
+
+.note-navigation {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin: 28px 0;
+}
+
+.note-navigation button {
+  padding: 12px 20px;
+  background: #ffffff;
+  border: 1px solid #e4d9f2;
+  border-radius: 9px;
+  color: #7041c5;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.note-navigation button:hover:not(:disabled) {
+  background: #eee7ff;
+  border-color: #c9b4ed;
+}
+
+.note-navigation button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   SMOOTH SCROLLING
+========================================= */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* =========================================
+   RESPONSIVE DESIGN
+========================================= */
+
+@media (max-width: 700px) {
+  .note-detail-page {
+    padding: 20px 15px;
+  }
+
+  .note-detail-header {
+    padding: 20px;
+  }
+
+  .note-detail-header h1 {
+    font-size: 24px;
+  }
+
+  .note-article section {
+    padding: 18px;
+  }
+
+  .note-article section > h2 {
+    font-size: 18px;
+  }
+
+  .note-toc {
+    padding: 18px;
+  }
+
+  .note-toc-links {
+    grid-template-columns: 1fr;
+  }
+
+  .note-navigation {
+    flex-direction: column;
+  }
+
+  .note-navigation button {
+    width: 100%;
+  }
+
+  .note-code {
+    font-size: 12px;
+  }
+}
