@@ -40,13 +40,36 @@ const practiceResultSchema = new mongoose.Schema(
           type: Number,
           required: true,
         },
+
         selectedAnswer: {
           type: Number,
           required: true,
         },
+
         correct: {
           type: Boolean,
           required: true,
+        },
+
+        timeTakenSeconds: {
+          type: Number,
+          min: 0,
+          default: 0,
+        },
+
+        difficulty: {
+          type: String,
+          enum: ['easy', 'medium', 'hard'],
+        },
+
+        gapType: {
+          type: String,
+          enum: ['conceptual', 'logical', 'application'],
+        },
+
+        skill: {
+          type: String,
+          trim: true,
         },
       },
     ],

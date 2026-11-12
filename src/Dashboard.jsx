@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import learningResources from './engine/resources.js';
+import { getSmartRecommendations } from './engine/smartRecommendations.js';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import './Dashboard.css';
 
@@ -63,6 +64,16 @@ function Dashboard({ results, quizHistory = [] }) {
   const [practiceHistory, setPracticeHistory] = useState([]);
   const [practiceLoading, setPracticeLoading] = useState(true);
   const [practiceError, setPracticeError] = useState('');
+
+  // Smart Gap Detector analysis
+  const [gapAnalysis, setGapAnalysis] = useState(null);
+  const [gapLoading, setGapLoading] = useState(false);
+  const [gapError, setGapError] = useState('');
+  // Generate personalized learning recommendations
+const smartRecommendationData = getSmartRecommendations({
+  weakSkills: gapAnalysis?.weak_skills || [],
+  weakGaps: gapAnalysis?.weak_gaps || [],
+});
 
   // Diagnostic quiz data
   const conceptScores = results?.conceptScores || {};
@@ -182,6 +193,100 @@ function Dashboard({ results, quizHistory = [] }) {
       cancelled = true;
     };
   }, []);
+
+  // Send metadata-complete practice attempts to the Smart Gap Detector.
+  // Older attempts without gap metadata are skipped to avoid API validation errors.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function analyzePracticeGaps() {
+      const validPracticeResults = practiceHistory
+        .filter(
+          (attempt) =>
+            Array.isArray(attempt.answers) &&
+            attempt.answers.length > 0 &&
+            attempt.answers.every(
+              (answer) =>
+                typeof answer.correct === 'boolean' &&
+                Number.isFinite(Number(answer.timeTakenSeconds)) &&
+                ['easy', 'medium', 'hard'].includes(answer.difficulty) &&
+                ['conceptual', 'logical', 'application'].includes(answer.gapType) &&
+                typeof answer.skill === 'string' &&
+                answer.skill.trim().length > 0
+            )
+        )
+        .map((attempt) => ({
+          concept: attempt.concept,
+          answers: attempt.answers.map((answer) => ({
+            questionIndex: Number(answer.questionIndex),
+            selectedAnswer: Number(answer.selectedAnswer),
+            correct: answer.correct,
+            timeTakenSeconds: Number(answer.timeTakenSeconds),
+            difficulty: answer.difficulty,
+            gapType: answer.gapType,
+            skill: answer.skill,
+          })),
+        }));
+
+      if (validPracticeResults.length === 0) {
+        if (!cancelled) {
+          setGapAnalysis(null);
+          setGapError('');
+          setGapLoading(false);
+        }
+        return;
+      }
+
+      try {
+        setGapLoading(true);
+        setGapError('');
+
+        const response = await fetch(
+          `${API_BASE_URL}/api/analyze-practice-gaps`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              practice_results: validPracticeResults,
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(
+            data.message || 'Could not analyze your practice gaps.'
+          );
+        }
+
+        if (!cancelled) {
+          setGapAnalysis(data.data || null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setGapError(
+            error.message || 'Could not analyze your practice gaps.'
+          );
+          setGapAnalysis(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setGapLoading(false);
+        }
+      }
+    }
+
+    if (!practiceLoading) {
+      analyzePracticeGaps();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [practiceHistory, practiceLoading]);
 
   // Calculate statistics from saved practice attempts
   const practiceSummary = practiceHistory.reduce(
@@ -330,6 +435,218 @@ function Dashboard({ results, quizHistory = [] }) {
           weakConcepts={aiWeakConceptNames}
           conceptAnalysis={conceptAnalysis}
         />
+
+        {/* Smart Gap Detector */}
+        <section className="dashboard-panel" id="smart-gap-detector">
+          <div className="dashboard-section-heading">
+            <div>
+              <p className="dashboard-eyebrow">AI-POWERED DIAGNOSIS</p>
+              <h2>🧠 Smart Gap Detector</h2>
+            </div>
+            <span className="dashboard-heading-icon">🔍</span>
+          </div>
+
+          <p className="dashboard-subtitle">
+            Discover whether you need more conceptual understanding, logical
+            reasoning, or practical application based on your practice answers.
+          </p>
+
+          {practiceLoading || gapLoading ? (
+            <p className="dashboard-empty-message">
+              Analyzing your practice performance...
+            </p>
+          ) : gapError ? (
+            <p className="dashboard-empty-message">{gapError}</p>
+          ) : !gapAnalysis ? (
+            <p className="dashboard-empty-message">
+              Complete a new practice quiz to generate your Smart Gap Detector
+              analysis. Older attempts without gap metadata are not included.
+            </p>
+          ) : gapAnalysis.total_questions_analyzed === 0 ? (
+            <p className="dashboard-empty-message">
+              Complete practice questions to generate your gap analysis.
+            </p>
+          ) : (
+            <>
+              <div className="dashboard-resources">
+                <article className="dashboard-resource-card">
+                  <h3>Overall Accuracy</h3>
+                  <p className="dashboard-subtitle">
+                    {gapAnalysis.overall_accuracy ?? 0}%
+                  </p>
+                </article>
+                <article className="dashboard-resource-card">
+                  <h3>Questions Analyzed</h3>
+                  <p className="dashboard-subtitle">
+                    {gapAnalysis.total_questions_analyzed ?? 0}
+                  </p>
+                </article>
+                <article className="dashboard-resource-card">
+                  <h3>Average Answer Time</h3>
+                  <p className="dashboard-subtitle">
+                    {Number(gapAnalysis.average_answer_time_seconds || 0).toFixed(1)} seconds
+                  </p>
+                </article>
+              </div>
+
+              <div className="dashboard-resources">
+                {Object.entries(gapAnalysis.gap_analysis || {}).map(
+                  ([gapType, details]) => (
+                    <article className="dashboard-resource-card" key={gapType}>
+                      <h3>
+                        {gapType.charAt(0).toUpperCase() + gapType.slice(1)} Gap
+                      </h3>
+                      <p className="dashboard-subtitle">
+                        Accuracy: {details.accuracy ?? 0}%
+                      </p>
+                      <p className="dashboard-subtitle">
+                        Status: {details.status || 'Not classified'}
+                      </p>
+                      {details.average_time_seconds !== undefined && (
+                        <p className="dashboard-subtitle">
+                          Average time: {Number(details.average_time_seconds).toFixed(1)} seconds
+                        </p>
+                      )}
+                    </article>
+                  )
+                )}
+              </div>
+
+              {Array.isArray(gapAnalysis.weak_gaps) &&
+                gapAnalysis.weak_gaps.length > 0 && (
+                  <div>
+                    <h3>Areas That Need Improvement</h3>
+                    <ul className="dashboard-roadmap-list">
+                      {gapAnalysis.weak_gaps.map((gap, index) => (
+                        <li key={`${String(gap)}-${index}`}>
+                          <div>
+                            <strong>
+                              {typeof gap === 'string'
+                                ? gap
+                                : gap.gap_type || gap.gapType || gap.type || 'Learning gap'}
+                            </strong>
+                            {typeof gap === 'object' && gap.recommendation && (
+                              <p className="dashboard-concept-detail">
+                                {gap.recommendation}
+                              </p>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+              {Array.isArray(gapAnalysis.weak_skills) &&
+                gapAnalysis.weak_skills.length > 0 && (
+                  <div>
+                    <h3>Skills to Practice</h3>
+                    <ul className="dashboard-roadmap-list">
+                      {gapAnalysis.weak_skills.map((skill, index) => (
+                        <li key={`${String(skill)}-${index}`}>
+                          <div>
+                            <strong>
+                              {typeof skill === 'string'
+                                ? skill
+                                : skill.skill || skill.name || 'Skill to improve'}
+                            </strong>
+                            {typeof skill === 'object' && skill.accuracy !== undefined && (
+                              <p className="dashboard-concept-detail">
+                                Accuracy: {skill.accuracy}%
+                              </p>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+              {Array.isArray(gapAnalysis.recommendations) &&
+                gapAnalysis.recommendations.length > 0 && (
+                  <div>
+                    <h3>Personalized Recommendations</h3>
+                    <ul className="dashboard-roadmap-list">
+                      {gapAnalysis.recommendations.map((recommendation, index) => (
+                        <li key={index}>
+                          <div>
+                            {typeof recommendation === 'string'
+                              ? recommendation
+                              : recommendation.message ||
+                                recommendation.recommendation ||
+                                recommendation.title ||
+                                JSON.stringify(recommendation)}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+{/* Smart Learning Recommendations */}
+<div className="smart-learning-recommendations">
+  <h3>🎯 Your Smart Learning Recommendations</h3>
+
+  {smartRecommendationData.guidance.map((item) => (
+    <article key={item.gapType} className="dashboard-resource-card">
+      <h4>{item.label}</h4>
+      <p className="dashboard-subtitle">{item.description}</p>
+    </article>
+  ))}
+
+  {smartRecommendationData.recommendations.length > 0 ? (
+    <div className="dashboard-resources">
+      {smartRecommendationData.recommendations.map((item) => (
+        <article className="dashboard-resource-card" key={item.skill}>
+          <h4>{item.title}</h4>
+
+          <p className="dashboard-subtitle">
+            {item.explanation}
+          </p>
+
+          <h4>📖 Recommended Notes</h4>
+          {item.notes.map((note) => (
+            <button
+              type="button"
+              key={note.slug}
+              onClick={() => navigate(note.route)}
+            >
+              Read {note.title} →
+            </button>
+          ))}
+
+          <h4>🎥 Recommended Video</h4>
+          {item.videos.map((video) => (
+            <button
+              type="button"
+              key={video.id}
+              onClick={() => navigate(video.route)}
+            >
+              Watch {video.title} →
+            </button>
+          ))}
+
+          <h4>✍️ Practice</h4>
+          <button
+            type="button"
+            onClick={() => navigate(item.practiceRoute)}
+          >
+            Practice This Skill →
+          </button>
+        </article>
+      ))}
+    </div>
+  ) : (
+    <p className="dashboard-empty-message">
+      Complete more practice questions to receive skill-specific
+      learning recommendations.
+    </p>
+  )}
+</div>
+
+            </>
+          )}
+        </section>
 
         {/* Learning Progress */}
         <section

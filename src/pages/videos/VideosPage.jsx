@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import './VideosPage.css';
@@ -78,6 +78,137 @@ const categories = [
 function VideosPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All Videos');
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [youtubeApiReady, setYoutubeApiReady] = useState(
+  Boolean(window.YT && window.YT.Player)
+);
+  // Store video progress
+const [videoProgress, setVideoProgress] = useState(() => {
+  try {
+    const savedProgress = localStorage.getItem('learnadapt-video-progress');
+    return savedProgress ? JSON.parse(savedProgress) : {};
+  } catch {
+    return {};
+  }
+});
+
+// YouTube player references
+const playerRef = useRef(null);
+const playerContainerRef = useRef(null);
+const progressIntervalRef = useRef(null);
+// Save video progress whenever it changes
+useEffect(() => {
+  localStorage.setItem(
+    'learnadapt-video-progress',
+    JSON.stringify(videoProgress)
+  );
+}, [videoProgress]);
+// Load YouTube IFrame Player API
+// Load YouTube IFrame Player API
+useEffect(() => {
+  if (window.YT && window.YT.Player) {
+    setYoutubeApiReady(true);
+    return;
+  }
+
+  window.onYouTubeIframeAPIReady = () => {
+    setYoutubeApiReady(true);
+  };
+
+  const existingScript = document.querySelector(
+    'script[src="https://www.youtube.com/iframe_api"]'
+  );
+
+  if (!existingScript) {
+    const script = document.createElement('script');
+    script.src = 'https://www.youtube.com/iframe_api';
+    document.body.appendChild(script);
+  }
+}, []);
+// Initialize YouTube player when a video is selected
+
+// Initialize YouTube player and track progress
+useEffect(() => {
+  if (!selectedVideo || !youtubeApiReady || !playerContainerRef.current) {
+    return;
+  }
+
+  playerRef.current = new window.YT.Player(
+    playerContainerRef.current,
+    {
+      width: '100%',
+      height: '100%',
+      videoId: selectedVideo.videoId,
+      playerVars: {
+        autoplay: 1,
+        rel: 0,
+      },
+      events: {
+        onStateChange: (event) => {
+          const player = event.target;
+
+          // Clear any previous tracking interval
+          clearInterval(progressIntervalRef.current);
+
+          // Video is playing
+          if (event.data === window.YT.PlayerState.PLAYING) {
+            progressIntervalRef.current = setInterval(() => {
+              const duration = player.getDuration();
+              const currentTime = player.getCurrentTime();
+
+              if (!duration) return;
+
+              const percentage = Math.min(
+                100,
+                Math.floor((currentTime / duration) * 100)
+              );
+
+              setVideoProgress((previous) => {
+                const oldProgress = previous[selectedVideo.id] || {
+                  percentage: 0,
+                  completed: false,
+                };
+
+                const updatedPercentage = Math.max(
+                  oldProgress.percentage,
+                  percentage
+                );
+
+                return {
+                  ...previous,
+                  [selectedVideo.id]: {
+                    percentage: updatedPercentage,
+                    completed: updatedPercentage >= 90,
+                  },
+                };
+              });
+            }, 1000);
+          }
+
+          // Video has finished
+          if (event.data === window.YT.PlayerState.ENDED) {
+            setVideoProgress((previous) => ({
+              ...previous,
+              [selectedVideo.id]: {
+                percentage: 100,
+                completed: true,
+              },
+            }));
+          }
+        },
+      },
+    }
+  );
+
+  return () => {
+    clearInterval(progressIntervalRef.current);
+
+    if (playerRef.current) {
+      playerRef.current.destroy();
+      playerRef.current = null;
+    }
+  };
+}, [selectedVideo, youtubeApiReady]);
 
   const filteredVideos = videoTopics.filter((video) => {
     const matchesSearch =
@@ -169,16 +300,15 @@ function VideosPage() {
             {filteredVideos.length > 0 ? (
               filteredVideos.map((video) => (
                 <article className="video-card" key={video.id}>
-                  <a
-                    className="video-thumbnail"
-                    href={`https://www.youtube.com/watch?v=${video.videoId}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <img src={video.thumbnail} alt={video.title} />
-                    <span className="video-play-button">▶</span>
-                    <span className="video-duration">{video.duration}</span>
-                  </a>
+                 <button
+  type="button"
+  className="video-thumbnail"
+  onClick={() => setSelectedVideo(video)}
+>
+  <img src={video.thumbnail} alt={video.title} />
+  <span className="video-play-button">▶</span>
+  <span className="video-duration">{video.duration}</span>
+</button>
 
                   <div className="video-card-content">
                     <div className="video-card-meta">
@@ -188,15 +318,37 @@ function VideosPage() {
 
                     <h3>{video.title}</h3>
                     <p>{video.description}</p>
+                    <div className="video-progress-section">
+  <div className="video-progress-info">
+    <span>
+      {videoProgress[video.id]?.completed
+        ? 'Completed'
+        : videoProgress[video.id]?.percentage > 0
+        ? 'In Progress'
+        : 'Not Started'}
+    </span>
 
-                    <a
-                      className="video-watch-link"
-                      href={`https://www.youtube.com/watch?v=${video.videoId}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Watch Lesson <span>→</span>
-                    </a>
+    <span>
+      {videoProgress[video.id]?.percentage || 0}%
+    </span>
+  </div>
+
+  <div className="video-progress-track">
+    <div
+      className="video-progress-fill"
+      style={{
+        width: `${videoProgress[video.id]?.percentage || 0}%`,
+      }}
+    />
+  </div>
+</div>
+<button
+  type="button"
+  className="video-watch-link"
+  onClick={() => setSelectedVideo(video)}
+>
+  Watch Lesson <span>→</span>
+</button>
                   </div>
                 </article>
               ))
@@ -216,7 +368,43 @@ function VideosPage() {
           </div>
           <Link to="/notes">Explore My Notes →</Link>
         </section>
-      </div>
+          </div>
+
+      {selectedVideo && (
+        <div
+          className="video-modal-overlay"
+          onClick={() => setSelectedVideo(null)}
+        >
+          <div
+            className="video-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="video-modal-header">
+              <h2>{selectedVideo.title}</h2>
+
+              <button
+                type="button"
+                className="video-modal-close"
+                onClick={() => setSelectedVideo(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="video-player-container">
+            <div
+  id="learnadapt-youtube-player"
+  ref={playerContainerRef}
+></div>
+            </div>
+
+            <p className="video-modal-description">
+              {selectedVideo.description}
+            </p>
+          </div>
+        </div>
+      )}
+
     </DashboardLayout>
   );
 }

@@ -115,6 +115,7 @@ const validPracticeConcepts = [
 ];
 
 // Save practice result
+
 app.post('/api/practice-results', async (req, res) => {
   try {
     const {
@@ -125,6 +126,9 @@ app.post('/api/practice-results', async (req, res) => {
       answers,
     } = req.body;
 
+    const validDifficulties = ['easy', 'medium', 'hard'];
+    const validGapTypes = ['conceptual', 'logical', 'application'];
+
     if (
       !validPracticeConcepts.includes(concept) ||
       !Number.isInteger(score) ||
@@ -134,11 +138,19 @@ app.post('/api/practice-results', async (req, res) => {
       score > totalQuestions ||
       !Array.isArray(answers) ||
       answers.length !== totalQuestions ||
-      !answers.every(
-        (answer) =>
-          Number.isInteger(answer.questionIndex) &&
-          Number.isInteger(answer.selectedAnswer) &&
-          typeof answer.correct === 'boolean'
+      !answers.every((answer) =>
+        Number.isInteger(answer.questionIndex) &&
+        answer.questionIndex >= 0 &&
+        answer.questionIndex < totalQuestions &&
+        Number.isInteger(answer.selectedAnswer) &&
+        answer.selectedAnswer >= 0 &&
+        typeof answer.correct === 'boolean' &&
+        Number.isFinite(answer.timeTakenSeconds) &&
+        answer.timeTakenSeconds >= 0 &&
+        validDifficulties.includes(answer.difficulty) &&
+        validGapTypes.includes(answer.gapType) &&
+        typeof answer.skill === 'string' &&
+        answer.skill.trim().length > 0
       )
     ) {
       return res.status(400).json({
@@ -152,7 +164,7 @@ app.post('/api/practice-results', async (req, res) => {
     ).length;
 
     const calculatedPercentage = Math.round(
-      (score / totalQuestions) * 100
+      (actualScore / totalQuestions) * 100
     );
 
     if (
@@ -178,6 +190,7 @@ app.post('/api/practice-results', async (req, res) => {
       message: 'Practice result saved successfully!',
       data: savedResult,
     });
+
   } catch (error) {
     console.error('Save practice result error:', error);
 
@@ -187,6 +200,7 @@ app.post('/api/practice-results', async (req, res) => {
     });
   }
 });
+
 
 // Retrieve practice results
 app.get('/api/practice-results', async (req, res) => {
@@ -295,6 +309,42 @@ app.patch('/api/quiz-results/:id/ai-analysis', async (req, res) => {
       success: false,
       message: 'Could not save AI analysis.',
       error: error.message,
+    });
+  }
+});
+// Smart Gap Detector - Forward practice data to Python AI
+app.post('/api/analyze-practice-gaps', async (req, res) => {
+  try {
+    const { practice_results } = req.body;
+
+    if (!Array.isArray(practice_results)) {
+      return res.status(400).json({
+        success: false,
+        message: 'practice_results must be an array.',
+      });
+    }
+
+    const response = await fetch(
+      'http://127.0.0.1:8001/analyze-practice-gaps',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ practice_results }),
+      }
+    );
+
+    const result = await response.json();
+
+    return res.status(response.status).json(result);
+
+  } catch (error) {
+    console.error('Smart Gap Detector error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Could not connect to Python AI service.',
     });
   }
 });

@@ -6,21 +6,30 @@ const questions = [
     question: "What does a Promise represent in JavaScript?",
     options: ["A future result", "A CSS style", "An HTML element", "A loop"],
     correctAnswer: "A future result",
-    concept: "promise-basics"
+    concept: "promise-basics",
+    difficulty: "easy",
+    gapType: "conceptual",
+    skill: "understanding-promises"
   },
   {
     id: 2,
     question: "Which method handles a fulfilled Promise?",
     options: [".then()", ".catch()", ".push()", ".map()"],
     correctAnswer: ".then()",
-    concept: "promise-basics"
+    concept: "promise-basics",
+    difficulty: "easy",
+    gapType: "conceptual",
+    skill: "promise-then-method"
   },
   {
     id: 3,
     question: "Which method handles a rejected Promise?",
     options: [".map()", ".catch()", ".join()", ".shift()"],
     correctAnswer: ".catch()",
-    concept: "promise-basics"
+    concept: "promise-basics",
+    difficulty: "easy",
+    gapType: "conceptual",
+    skill: "promise-catch-method"
   },
 
   // Promise states
@@ -34,21 +43,30 @@ const questions = [
       "True, false, null"
     ],
     correctAnswer: "Pending, fulfilled, rejected",
-    concept: "promise-states"
+    concept: "promise-states",
+    difficulty: "medium",
+    gapType: "conceptual",
+    skill: "promise-states"
   },
   {
     id: 5,
     question: "What is the initial state of a new Promise?",
     options: ["Fulfilled", "Rejected", "Pending", "Completed"],
     correctAnswer: "Pending",
-    concept: "promise-states"
+    concept: "promise-states",
+    difficulty: "easy",
+    gapType: "conceptual",
+    skill: "initial-promise-state"
   },
   {
     id: 6,
     question: "Can a settled Promise change its state again?",
     options: ["Always", "Only twice", "Never", "Only after a timeout"],
     correctAnswer: "Never",
-    concept: "promise-states"
+    concept: "promise-states",
+    difficulty: "medium",
+    gapType: "logical",
+    skill: "promise-state-transitions"
   },
 
   // then and catch
@@ -57,14 +75,20 @@ const questions = [
     question: "Which method handles a fulfilled Promise?",
     options: [".then()", ".catch()", ".finally()", ".reduce()"],
     correctAnswer: ".then()",
-    concept: "then-catch"
+    concept: "then-catch",
+    difficulty: "easy",
+    gapType: "conceptual",
+    skill: "then-method"
   },
   {
     id: 8,
     question: "Which method is commonly used to handle Promise rejection?",
     options: [".map()", ".catch()", ".filter()", ".slice()"],
     correctAnswer: ".catch()",
-    concept: "then-catch"
+    concept: "then-catch",
+    difficulty: "easy",
+    gapType: "conceptual",
+    skill: "catch-method"
   },
   {
     id: 9,
@@ -76,7 +100,10 @@ const questions = [
       "The function name"
     ],
     correctAnswer: "The fulfillment value",
-    concept: "then-catch"
+    concept: "then-catch",
+    difficulty: "medium",
+    gapType: "logical",
+    skill: "promise-fulfillment-value"
   },
 
   // Async / await
@@ -85,7 +112,10 @@ const questions = [
     question: "Which keyword declares an asynchronous function?",
     options: ["async", "await", "defer", "promise"],
     correctAnswer: "async",
-    concept: "async-await"
+    concept: "async-await",
+    difficulty: "easy",
+    gapType: "conceptual",
+    skill: "async-keyword"
   },
   {
     id: 11,
@@ -97,14 +127,20 @@ const questions = [
       "Deletes the Promise"
     ],
     correctAnswer: "Waits for a Promise's result before continuing that function",
-    concept: "async-await"
+    concept: "async-await",
+    difficulty: "medium",
+    gapType: "logical",
+    skill: "await-execution"
   },
   {
     id: 12,
     question: "What does an async function return?",
     options: ["A Promise", "A CSS rule", "An HTML tag", "A loop"],
     correctAnswer: "A Promise",
-    concept: "async-await"
+    concept: "async-await",
+    difficulty: "medium",
+    gapType: "application",
+    skill: "async-function-return"
   },
 
   // Error handling
@@ -113,7 +149,10 @@ const questions = [
     question: "Which statement is commonly used to handle exceptions?",
     options: ["try...catch", "if...else only", "for...of", "switch only"],
     correctAnswer: "try...catch",
-    concept: "error-handling"
+    concept: "error-handling",
+    difficulty: "easy",
+    gapType: "conceptual",
+    skill: "try-catch-basics"
   },
   {
     id: 14,
@@ -125,14 +164,20 @@ const questions = [
       "In a CSS selector"
     ],
     correctAnswer: "In the catch block",
-    concept: "error-handling"
+    concept: "error-handling",
+    difficulty: "medium",
+    gapType: "logical",
+    skill: "exception-flow"
   },
   {
     id: 15,
     question: "Which method can handle a rejected Promise in a Promise chain?",
     options: [".catch()", ".push()", ".join()", ".sort()"],
     correctAnswer: ".catch()",
-    concept: "error-handling"
+    concept: "error-handling",
+    difficulty: "medium",
+    gapType: "application",
+    skill: "promise-error-handling"
   }
 ];
 

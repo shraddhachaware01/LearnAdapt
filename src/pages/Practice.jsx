@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 // Supports local development and production deployment
@@ -20,6 +20,9 @@ const practiceQuestions = {
       answer: 0,
       explanation:
         'A Promise represents the eventual fulfillment or rejection of an asynchronous operation.',
+      difficulty: 'easy',
+      gapType: 'conceptual',
+      skill: 'understanding-promises',
     },
     {
       question: 'Which method handles a fulfilled Promise value?',
@@ -27,6 +30,9 @@ const practiceQuestions = {
       answer: 1,
       explanation:
         'then() registers a handler that runs when the Promise fulfills.',
+      difficulty: 'easy',
+      gapType: 'conceptual',
+      skill: 'promise-then-method',
     },
     {
       question: 'What does resolve("Done") do inside a Promise executor?',
@@ -39,6 +45,9 @@ const practiceQuestions = {
       answer: 2,
       explanation:
         'Calling resolve with a value fulfills the Promise with that value, unless it has already settled.',
+      difficulty: 'medium',
+      gapType: 'application',
+      skill: 'promise-resolve-value',
     },
   ],
 
@@ -54,6 +63,9 @@ const practiceQuestions = {
       answer: 1,
       explanation:
         'A Promise starts pending and eventually becomes fulfilled or rejected.',
+      difficulty: 'easy',
+      gapType: 'conceptual',
+      skill: 'promise-states',
     },
     {
       question: 'What does a fulfilled Promise indicate?',
@@ -66,6 +78,9 @@ const practiceQuestions = {
       answer: 0,
       explanation:
         'Fulfilled means the Promise completed successfully with a fulfillment value.',
+      difficulty: 'easy',
+      gapType: 'conceptual',
+      skill: 'fulfilled-promise-state',
     },
     {
       question: 'Can a settled Promise change from fulfilled to rejected?',
@@ -78,6 +93,9 @@ const practiceQuestions = {
       answer: 3,
       explanation:
         'Once fulfilled or rejected, a Promise cannot change its own state.',
+      difficulty: 'medium',
+      gapType: 'logical',
+      skill: 'promise-state-transitions',
     },
   ],
 
@@ -88,6 +106,9 @@ const practiceQuestions = {
       answer: 1,
       explanation:
         'catch() registers a rejection handler for a Promise chain.',
+      difficulty: 'easy',
+      gapType: 'conceptual',
+      skill: 'promise-catch-method',
     },
     {
       question: 'What happens when a then() callback returns 20?',
@@ -100,6 +121,9 @@ const practiceQuestions = {
       answer: 2,
       explanation:
         'A returned value fulfills the Promise produced by then(), making that value available to the next handler.',
+      difficulty: 'medium',
+      gapType: 'logical',
+      skill: 'then-chain-value',
     },
     {
       question: 'What does this code print?',
@@ -108,6 +132,9 @@ const practiceQuestions = {
       answer: 1,
       explanation:
         'The first callback doubles 5 to 10, and the next callback logs 10.',
+      difficulty: 'medium',
+      gapType: 'application',
+      skill: 'promise-chain-output',
     },
   ],
 
@@ -123,6 +150,9 @@ const practiceQuestions = {
       answer: 0,
       explanation:
         'An async function always returns a Promise. A returned value becomes its fulfillment value.',
+      difficulty: 'medium',
+      gapType: 'conceptual',
+      skill: 'async-function-return',
     },
     {
       question: 'Where can await normally be used in standard JavaScript?',
@@ -135,6 +165,9 @@ const practiceQuestions = {
       answer: 2,
       explanation:
         'await can be used in async functions and, in supported environments, at the top level of a JavaScript module.',
+      difficulty: 'medium',
+      gapType: 'conceptual',
+      skill: 'await-usage',
     },
     {
       question: 'Does await block the entire JavaScript thread while a Promise is pending?',
@@ -147,6 +180,9 @@ const practiceQuestions = {
       answer: 1,
       explanation:
         'await suspends the surrounding async function, not the entire JavaScript thread.',
+      difficulty: 'hard',
+      gapType: 'logical',
+      skill: 'await-execution-flow',
     },
   ],
 
@@ -157,6 +193,9 @@ const practiceQuestions = {
       answer: 3,
       explanation:
         'try/catch can catch exceptions thrown in the try block, including errors from an awaited rejected Promise.',
+      difficulty: 'medium',
+      gapType: 'application',
+      skill: 'async-error-handling',
     },
     {
       question: 'What does catch() do in a Promise chain?',
@@ -169,6 +208,9 @@ const practiceQuestions = {
       answer: 0,
       explanation:
         'catch() handles a rejection from an earlier part of the Promise chain.',
+      difficulty: 'easy',
+      gapType: 'conceptual',
+      skill: 'promise-rejection-handling',
     },
     {
       question: 'What is a useful practice when handling an error?',
@@ -181,6 +223,9 @@ const practiceQuestions = {
       answer: 2,
       explanation:
         'Useful error information helps the application respond appropriately and helps developers diagnose failures.',
+      difficulty: 'medium',
+      gapType: 'application',
+      skill: 'error-handling-practice',
     },
   ],
 };
@@ -206,6 +251,7 @@ function Practice() {
   const [finished, setFinished] = useState(false);
   const [saveStatus, setSaveStatus] = useState('idle');
   const [saveMessage, setSaveMessage] = useState('');
+  const questionStartTimeRef = useRef(Date.now());
 
   async function savePracticeResult(finalAnswers) {
     setSaveStatus('saving');
@@ -251,6 +297,14 @@ function Practice() {
   function selectAnswer(optionIndex) {
     if (selectedAnswer !== null || finished) return;
 
+    const currentQuestion = questions[currentIndex];
+    // Keep fractional seconds so quick answers are not all recorded as 1 second.
+    const elapsedMilliseconds = Date.now() - questionStartTimeRef.current;
+    const timeTakenSeconds = Math.max(
+      0.01,
+      Number((elapsedMilliseconds / 1000).toFixed(2))
+    );
+
     setSelectedAnswer(optionIndex);
 
     setAnswers((previous) => [
@@ -258,7 +312,11 @@ function Practice() {
       {
         questionIndex: currentIndex,
         selectedAnswer: optionIndex,
-        correct: optionIndex === questions[currentIndex].answer,
+        correct: optionIndex === currentQuestion.answer,
+        timeTakenSeconds,
+        difficulty: currentQuestion.difficulty,
+        gapType: currentQuestion.gapType,
+        skill: currentQuestion.skill,
       },
     ]);
   }
@@ -267,23 +325,14 @@ function Practice() {
     if (selectedAnswer === null || finished) return;
 
     if (currentIndex === questions.length - 1) {
-      const finalAnswers = [
-        ...answers.filter(
-          (answer) => answer.questionIndex !== currentIndex
-        ),
-        {
-          questionIndex: currentIndex,
-          selectedAnswer,
-          correct: selectedAnswer === questions[currentIndex].answer,
-        },
-      ];
-
-      setAnswers(finalAnswers);
+      // The answer was recorded when the student selected an option.
+      const finalAnswers = answers;
       setFinished(true);
       savePracticeResult(finalAnswers);
     } else {
       setCurrentIndex((previous) => previous + 1);
       setSelectedAnswer(null);
+      questionStartTimeRef.current = Date.now();
     }
   }
 
@@ -294,6 +343,7 @@ function Practice() {
     setFinished(false);
     setSaveStatus('idle');
     setSaveMessage('');
+    questionStartTimeRef.current = Date.now();
   }
 
   const score = answers.filter((answer) => answer.correct).length;
@@ -464,6 +514,7 @@ function Practice() {
 
       <section style={styles.card}>
         <h2 style={styles.cardHeading}>{question.question}</h2>
+        <p style={styles.questionMeta}>Difficulty: {question.difficulty} · Skill: {question.skill}</p>
 
         {question.code && (
           <pre style={styles.code}>{question.code}</pre>
@@ -644,6 +695,13 @@ const styles = {
     fontSize: '23px',
     lineHeight: 1.5,
     marginTop: '0',
+  },
+
+  questionMeta: {
+    color: '#6b6680',
+    fontSize: '13px',
+    marginTop: '-10px',
+    marginBottom: '16px',
   },
 
   options: {
